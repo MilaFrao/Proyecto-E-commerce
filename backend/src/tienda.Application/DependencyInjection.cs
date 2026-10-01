@@ -1,19 +1,19 @@
 using Microsoft.Extensions.DependencyInjection;
-using Tienda.Aplicacion.Catalogo;
-using Tienda.Aplicacion.Inventario;
-using Tienda.Aplicacion.Listas;
-using Tienda.Aplicacion.Productos;
+using Tienda.Application.Catalogo;
+using Tienda.Application.Inventario;
+using Tienda.Application.Listas;
+using Tienda.Application.Productos;
 
-namespace Tienda.Aplicacion;
+namespace Tienda.Application;
 
-public static class InyeccionDependencias
+public static class DependencyInjection
 {
-    public static IServiceCollection AgregarAplicacion(this IServiceCollection services)
+    public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddScoped<IServicioInventario, ServicioInventario>();
-        services.AddScoped<IServicioCatalogo, ServicioCatalogo>();
-        services.AddScoped<IServicioProducto, ServicioProducto>();
-        services.AddScoped<IServicioListas, ServicioListas>();
+        services.AddScoped<IInventarioService, InventarioService>();
+        services.AddScoped<ICatalogoService, CatalogoService>();
+        services.AddScoped<IProductoService, ProductoService>();
+        services.AddScoped<IListasService, ListasService>();
         return services;
     }
 }

@@ -1,55 +1,55 @@
 using System.Text.Json.Serialization;
-using Tienda.Api.Rutas;
-using Tienda.Api.ManejoSolicitudes;
-using Tienda.Aplicacion;
-using Tienda.Infraestructura;
-using Tienda.Infraestructura.Persistencia.DatosIniciales;
+using Tienda.Api.Endpoints;
+using Tienda.Api.Middleware;
+using Tienda.Application;
+using Tienda.Infrastructure;
+using Tienda.Infrastructure.Persistence.Seed;
 
-var constructor = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
-constructor.Services.AgregarAplicacion();
-constructor.Services.AgregarInfraestructura(constructor.Configuration);
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // Los enums viajan como texto ("Entrada", "Activo"), no como numeros.
-constructor.Services.ConfigureHttpJsonOptions(opciones =>
-    opciones.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-constructor.Services.AddEndpointsApiExplorer();
-constructor.Services.AddSwaggerGen();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-const string PoliticaCorsInterfaz = "interfaz";
-constructor.Services.AddCors(opciones =>
-    opciones.AddPolicy(PoliticaCorsInterfaz, politica => politica
+const string FrontendCorsPolicy = "frontend";
+builder.Services.AddCors(options =>
+    options.AddPolicy(FrontendCorsPolicy, policy => policy
         .WithOrigins("http://localhost:5173")
         .AllowAnyHeader()
         .AllowAnyMethod()));
 
-var aplicacion = constructor.Build();
+var app = builder.Build();
 
-aplicacion.UseMiddleware<MiddlewareManejoExcepciones>();
+app.UseMiddleware<ExceptionHandlingMiddleware>();
 
-if (aplicacion.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    aplicacion.UseSwagger();
-    aplicacion.UseSwaggerUI();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 
     // Aplica migraciones pendientes y carga datos de prueba si la base esta vacia.
-    await SembradorDesarrollo.CargarDatosPruebaAsync(aplicacion.Services);
+    await DevSeeder.SeedAsync(app.Services);
 }
 
-aplicacion.UseCors(PoliticaCorsInterfaz);
+app.UseCors(FrontendCorsPolicy);
 
-aplicacion.MapGet("/salud", () => Results.Ok(new { estado = "correcto", fechaHora = DateTime.UtcNow }))
+app.MapGet("/salud", () => Results.Ok(new { estado = "correcto", fechaHora = DateTime.UtcNow }))
    .WithTags("Sistema");
 
 // MVP 1 - interno
-aplicacion.MapearRutasProducto();
-aplicacion.MapearRutasInventario();
+app.MapProductoEndpoints();
+app.MapInventarioEndpoints();
 
 // Listas compartidas (categorias, marcas)
-aplicacion.MapearRutasListas();
+app.MapListasEndpoints();
 
 // MVP 2 - publico
-aplicacion.MapearRutasCatalogo();
+app.MapCatalogoEndpoints();
 
-aplicacion.Run();
+app.Run();

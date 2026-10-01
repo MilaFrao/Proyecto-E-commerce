@@ -1,14 +1,14 @@
 using Microsoft.EntityFrameworkCore;
-using Tienda.Aplicacion.Abstracciones;
-using Tienda.Dominio.Catalogo;
-using Tienda.Dominio.Identidad;
-using Tienda.Dominio.Inventario;
+using Tienda.Application.Abstractions;
+using Tienda.Domain.Catalogo;
+using Tienda.Domain.Identity;
+using Tienda.Domain.Inventario;
 
-namespace Tienda.Infraestructura.Persistencia;
+namespace Tienda.Infrastructure.Persistence;
 
-public class ContextoBaseDatos : DbContext, IContextoBaseDatos
+public class AppDbContext : DbContext, IAppDbContext
 {
-    public ContextoBaseDatos(DbContextOptions<ContextoBaseDatos> options) : base(options) { }
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     public DbSet<Producto> Productos => Set<Producto>();
     public DbSet<VarianteProducto> VariantesProducto => Set<VarianteProducto>();
@@ -17,12 +17,12 @@ public class ContextoBaseDatos : DbContext, IContextoBaseDatos
     public DbSet<Marca> Marcas => Set<Marca>();
     public DbSet<NivelExistencias> NivelesExistencias => Set<NivelExistencias>();
     public DbSet<MovimientoExistencias> MovimientosExistencias => Set<MovimientoExistencias>();
-    public DbSet<UsuarioAplicacion> Usuarios => Set<UsuarioAplicacion>();
-    public DbSet<RolAplicacion> Roles => Set<RolAplicacion>();
+    public DbSet<Usuario> Usuarios => Set<Usuario>();
+    public DbSet<Rol> Roles => Set<Rol>();
 
-    protected override void OnModelCreating(ModelBuilder builder)
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        builder.ApplyConfigurationsFromAssembly(typeof(ContextoBaseDatos).Assembly);
-        base.OnModelCreating(builder);
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
     }
 }

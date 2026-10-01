@@ -1,90 +1,97 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Tienda.Dominio.Catalogo;
-using Tienda.Dominio.Enumeraciones;
-using Tienda.Dominio.Inventario;
+using Tienda.Domain.Catalogo;
+using Tienda.Domain.Enums;
+using Tienda.Domain.Inventario;
 
-namespace Tienda.Infraestructura.Persistencia.DatosIniciales;
+namespace Tienda.Infrastructure.Persistence.Seed;
 
 /// <summary>
 /// Solo desarrollo. Aplica las migraciones pendientes y, si la base esta vacia,
 /// carga un par de productos para poder probar el catalogo sin teclear todo a mano.
 /// </summary>
-public static class SembradorDesarrollo
+public static class DevSeeder
 {
-    public static async Task CargarDatosPruebaAsync(IServiceProvider services, CancellationToken ct = default)
+    public static async Task SeedAsync(IServiceProvider services, CancellationToken cancellationToken = default)
     {
-        using var scope = services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<ContextoBaseDatos>();
+        using var ambito = services.CreateScope();
+        var context = ambito.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        await db.Database.MigrateAsync(ct);
+        await context.Database.MigrateAsync(cancellationToken);
 
-        if (await db.Categorias.AnyAsync(ct)) return;
+        if (await context.Categorias.AnyAsync(cancellationToken)) return;
 
-        var camisas = new Categoria { Nombre = "Camisas", SegmentoUrl = "camisas", Orden = 1 };
-        var pantalones = new Categoria { Nombre = "Pantalones", SegmentoUrl = "pantalones", Orden = 2 };
-        var interior = new Categoria { Nombre = "Ropa interior", SegmentoUrl = "ropa-interior", Orden = 3 };
-        var calzado = new Categoria { Nombre = "Calzado", SegmentoUrl = "calzado", Orden = 4 };
+        var camisas = new Categoria { Nombre = "Camisas", Slug = "camisas", Orden = 1 };
+        var pantalones = new Categoria { Nombre = "Pantalones", Slug = "pantalones", Orden = 2 };
+        var interior = new Categoria { Nombre = "Ropa interior", Slug = "ropa-interior", Orden = 3 };
+        var calzado = new Categoria { Nombre = "Calzado", Slug = "calzado", Orden = 4 };
 
-        var urban = new Marca { Nombre = "Urban Fit" };
-        var demo = new Marca { Nombre = "Marca Demo" };
+        var marcaUrbana = new Marca { Nombre = "Urban Fit" };
+        var marcaDemostracion = new Marca { Nombre = "Marca Demo" };
 
-        db.Categorias.AddRange(camisas, pantalones, interior, calzado);
-        db.Marcas.AddRange(urban, demo);
+        context.Categorias.AddRange(camisas, pantalones, interior, calzado);
+        context.Marcas.AddRange(marcaUrbana, marcaDemostracion);
 
-        db.Productos.Add(BuildProduct(
+        context.Productos.Add(ConstruirProducto(
             "Camisa deportiva", "CAM-001", "Camisa ligera de secado rapido.",
-            camisas, urban, 24.99m, 18m,
+            camisas, marcaUrbana, 24.99m, 18m,
             new[] { "Negro", "Blanco" }, new[] { "S", "M", "L" }));
 
-        db.Productos.Add(BuildProduct(
+        context.Productos.Add(ConstruirProducto(
             "Pantalon jogger", "PAN-001", "Jogger de algodon con puno elastico.",
-            pantalones, demo, 34.50m, 26m,
+            pantalones, marcaDemostracion, 34.50m, 26m,
             new[] { "Azul", "Gris" }, new[] { "M", "L", "XL" }));
 
-        await db.SaveChangesAsync(ct);
+        await context.SaveChangesAsync(cancellationToken);
     }
 
-    private static Producto BuildProduct(
-        string name, string reference, string description,
-        Categoria category, Marca brand, decimal retail, decimal wholesale,
-        string[] colors, string[] sizes)
+    private static readonly Dictionary<string, string> HexPorColor = new()
     {
-        var product = new Producto
+        ["Negro"] = "#1A1A1A", ["Blanco"] = "#F5F5F5", ["Gris"] = "#9CA3AF",
+        ["Azul"] = "#2563EB", ["Rojo"] = "#C0392B", ["Verde"] = "#4A5E3A"
+    };
+
+    private static Producto ConstruirProducto(
+        string nombre, string referencia, string descripcion,
+        Categoria categoria, Marca marca, decimal precioVenta, decimal precioMayorista,
+        string[] colores, string[] tallas)
+    {
+        var producto = new Producto
         {
-            Nombre = name,
-            Referencia = reference,
-            Descripcion = description,
-            CategoriaId = category.Identificador,
-            MarcaId = brand.Identificador,
-            PrecioVenta = retail,
-            PrecioMayorista = wholesale
+            Nombre = nombre,
+            Referencia = referencia,
+            Descripcion = descripcion,
+            CategoriaId = categoria.Id,
+            MarcaId = marca.Id,
+            PrecioVenta = precioVenta,
+            PrecioMayorista = precioMayorista
         };
 
-        var index = 0;
-        foreach (var color in colors)
+        var indice = 0;
+        foreach (var color in colores)
         {
-            foreach (var size in sizes)
+            foreach (var talla in tallas)
             {
-                var variant = new VarianteProducto
+                var variante = new VarianteProducto
                 {
-                    ProductoId = product.Identificador,
-                    CodigoSku = $"{reference}-{color[..3].ToUpperInvariant()}-{size}",
+                    ProductoId = producto.Id,
+                    CodigoSku = $"{referencia}-{color[..3].ToUpperInvariant()}-{talla}",
                     Color = color,
-                    Talla = size
+                    ColorHex = HexPorColor.GetValueOrDefault(color, "#9CA3AF"),
+                    Talla = talla
                 };
 
                 // Una de cada tres variantes se queda en deposito sin surtir,
                 // para ver en el catalogo el caso "existe pero no esta disponible".
-                var supplied = index % 3 == 2 ? 0 : 8;
-                var warehouse = 20 - supplied;
+                var cantidadSurtida = indice % 3 == 2 ? 0 : 8;
+                var cantidadDeposito = 20 - cantidadSurtida;
 
-                variant.NivelesExistencias.Add(new NivelExistencias { VarianteProductoId = variant.Identificador, Ubicacion = UbicacionStock.Deposito, Cantidad = warehouse });
-                variant.NivelesExistencias.Add(new NivelExistencias { VarianteProductoId = variant.Identificador, Ubicacion = UbicacionStock.Tienda, Cantidad = supplied });
+                variante.NivelesExistencias.Add(new NivelExistencias { VarianteProductoId = variante.Id, Ubicacion = UbicacionStock.Deposito, Cantidad = cantidadDeposito });
+                variante.NivelesExistencias.Add(new NivelExistencias { VarianteProductoId = variante.Id, Ubicacion = UbicacionStock.Tienda, Cantidad = cantidadSurtida });
 
-                variant.Movimientos.Add(new MovimientoExistencias
+                variante.Movimientos.Add(new MovimientoExistencias
                 {
-                    VarianteProductoId = variant.Identificador,
+                    VarianteProductoId = variante.Id,
                     Tipo = TipoMovimiento.Entrada,
                     Cantidad = 20,
                     UbicacionDestino = UbicacionStock.Deposito,
@@ -94,27 +101,27 @@ public static class SembradorDesarrollo
                     Notas = "Carga inicial de datos de prueba"
                 });
 
-                if (supplied > 0)
+                if (cantidadSurtida > 0)
                 {
-                    variant.Movimientos.Add(new MovimientoExistencias
+                    variante.Movimientos.Add(new MovimientoExistencias
                     {
-                        VarianteProductoId = variant.Identificador,
+                        VarianteProductoId = variante.Id,
                         Tipo = TipoMovimiento.Traslado,
-                        Cantidad = supplied,
+                        Cantidad = cantidadSurtida,
                         UbicacionOrigen = UbicacionStock.Deposito,
                         UbicacionDestino = UbicacionStock.Tienda,
-                        CantidadResultanteDeposito = warehouse,
-                        CantidadResultanteTienda = supplied,
+                        CantidadResultanteDeposito = cantidadDeposito,
+                        CantidadResultanteTienda = cantidadSurtida,
                         OcurridoEn = DateTime.UtcNow.AddDays(-2),
                         Notas = "Surtido inicial de prueba"
                     });
                 }
 
-                product.Variantes.Add(variant);
-                index++;
+                producto.Variantes.Add(variante);
+                indice++;
             }
         }
 
-        return product;
+        return producto;
     }
 }

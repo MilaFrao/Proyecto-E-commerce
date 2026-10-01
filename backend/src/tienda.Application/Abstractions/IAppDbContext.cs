@@ -1,15 +1,15 @@
 using Microsoft.EntityFrameworkCore;
-using Tienda.Dominio.Catalogo;
-using Tienda.Dominio.Identidad;
-using Tienda.Dominio.Inventario;
+using Tienda.Domain.Catalogo;
+using Tienda.Domain.Identity;
+using Tienda.Domain.Inventario;
 
-namespace Tienda.Aplicacion.Abstracciones;
+namespace Tienda.Application.Abstractions;
 
 /// <summary>
 /// Contrato del contexto de datos. Application depende de esta interfaz,
 /// no de la clase concreta: asi se puede testear sin base de datos real.
 /// </summary>
-public interface IContextoBaseDatos
+public interface IAppDbContext
 {
     DbSet<Producto> Productos { get; }
     DbSet<VarianteProducto> VariantesProducto { get; }
@@ -18,8 +18,8 @@ public interface IContextoBaseDatos
     DbSet<Marca> Marcas { get; }
     DbSet<NivelExistencias> NivelesExistencias { get; }
     DbSet<MovimientoExistencias> MovimientosExistencias { get; }
-    DbSet<UsuarioAplicacion> Usuarios { get; }
-    DbSet<RolAplicacion> Roles { get; }
+    DbSet<Usuario> Usuarios { get; }
+    DbSet<Rol> Roles { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

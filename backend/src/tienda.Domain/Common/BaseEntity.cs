@@ -1,9 +1,9 @@
-namespace Tienda.Dominio.Comun;
+namespace Tienda.Domain.Common;
 
 /// <summary>Raiz comun de toda entidad persistida.</summary>
-public abstract class EntidadBase
+public abstract class BaseEntity
 {
-    public Guid Identificador { get; set; } = Guid.NewGuid();
-    public DateTime CreadoEn { get; set; } = DateTime.UtcNow;
-    public DateTime? ActualizadoEn { get; set; }
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedAt { get; set; }
 }

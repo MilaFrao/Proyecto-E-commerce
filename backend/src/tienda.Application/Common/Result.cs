@@ -1,28 +1,28 @@
-namespace Tienda.Aplicacion.Comun;
+namespace Tienda.Application.Common;
 
 /// <summary>Resultado explicito en vez de excepciones para los flujos esperados.</summary>
-public class Resultado
+public class Result
 {
-    public bool EsExitoso { get; }
+    public bool IsSuccess { get; }
     public string? Error { get; }
-    public bool HaFallado => !EsExitoso;
+    public bool IsFailure => !IsSuccess;
 
-    protected Resultado(bool isSuccess, string? error)
+    protected Result(bool isSuccess, string? error)
     {
-        EsExitoso = isSuccess;
+        IsSuccess = isSuccess;
         Error = error;
     }
 
-    public static Resultado Exito() => new(true, null);
-    public static Resultado Fallo(string error) => new(false, error);
-    public static Resultado<T> Exito<T>(T value) => new(value, true, null);
-    public static Resultado<T> Fallo<T>(string error) => new(default, false, error);
+    public static Result Success() => new(true, null);
+    public static Result Failure(string error) => new(false, error);
+    public static Result<T> Success<T>(T value) => new(value, true, null);
+    public static Result<T> Failure<T>(string error) => new(default, false, error);
 }
 
-public class Resultado<T> : Resultado
+public class Result<T> : Result
 {
-    public T? Valor { get; }
+    public T? Value { get; }
 
-    internal Resultado(T? value, bool isSuccess, string? error) : base(isSuccess, error)
-        => Valor = value;
+    internal Result(T? value, bool isSuccess, string? error) : base(isSuccess, error)
+        => Value = value;
 }

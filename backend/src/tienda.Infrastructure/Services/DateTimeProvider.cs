@@ -1,8 +1,8 @@
-using Tienda.Aplicacion.Abstracciones;
+using Tienda.Application.Abstractions;
 
-namespace Tienda.Infraestructura.Servicios;
+namespace Tienda.Infrastructure.Services;
 
-public class ProveedorFechaHora : IProveedorFechaHora
+public class DateTimeProvider : IDateTimeProvider
 {
-    public DateTime AhoraUtc => DateTime.UtcNow;
+    public DateTime UtcNow => DateTime.UtcNow;
 }

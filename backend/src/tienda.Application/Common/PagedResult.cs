@@ -1,6 +1,6 @@
-namespace Tienda.Aplicacion.Comun;
+namespace Tienda.Application.Common;
 
-public class ResultadoPaginado<T>
+public class PagedResult<T>
 {
     public IReadOnlyList<T> Elementos { get; init; } = Array.Empty<T>();
     public int Pagina { get; init; }

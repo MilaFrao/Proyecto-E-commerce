@@ -30,12 +30,12 @@ tienda-app/
 │   ├── Tienda.sln
 │   ├── Directory.Build.props        ← versión de .NET, en un solo lugar
 │   ├── src/
-│   │   ├── Tienda.Dominio/          entidades y reglas de negocio puras
-│   │   ├── Tienda.Aplicacion/       casos de uso, DTOs, interfaces
-│   │   ├── Tienda.Infraestructura/  EF Core, PostgreSQL, servicios externos
+│   │   ├── Tienda.Domain/          entidades y reglas de negocio puras
+│   │   ├── Tienda.Application/       casos de uso, DTOs, interfaces
+│   │   ├── Tienda.Infrastructure/  EF Core, PostgreSQL, servicios externos
 │   │   └── Tienda.Api/              endpoints HTTP
 │   └── tests/
-│       └── Tienda.Dominio.Pruebas/
+│       └── Tienda.Domain.Tests/
 ├── frontend/
 │   └── src/
 │       ├── app/                     router, layouts, providers
@@ -48,19 +48,28 @@ tienda-app/
 ### La regla de las dependencias
 
 ```
-Api  →  Infraestructura  →  Aplicacion  →  Dominio
+Api  →  Infrastructure  →  Application  →  Domain
 ```
 
 Las flechas apuntan **hacia adentro**, nunca al revés. Si aparece un
-`using Tienda.Infraestructura` dentro de `Tienda.Dominio`, algo se torció.
+`using Tienda.Infrastructure` dentro de `Tienda.Domain`, algo se torció.
 
 ### Convención de nombres
 
-Todo el código del backend está en español: clases, propiedades, métodos,
-parámetros, variables, tablas y columnas. Se conservan en inglés solo los
-términos del propio framework (`Controller`, `Middleware`, `DbContext`,
-`SaveChangesAsync`, `InvokeAsync`, `IEntityTypeConfiguration`...). Detalle en
-la decisión 008 de [`docs/decisiones.md`](docs/decisiones.md).
+La regla es una sola: **lo que es del negocio va en español; lo que es de la
+estructura técnica va en inglés.**
+
+| En español (el negocio) | En inglés (la estructura) |
+|---|---|
+| Entidades y sus propiedades: `Producto`, `VarianteProducto`, `NivelExistencias`, `PrecioVenta`, `Talla` | Capas y proyectos: `Domain`, `Application`, `Infrastructure`, `Api` |
+| Enums y sus valores: `EstadoProducto.Activo`, `TipoMovimiento.Traslado` | Carpetas técnicas: `Common`, `Abstractions`, `Dtos`, `Enums`, `Persistence`, `Endpoints` |
+| Casos de uso: `ListarAsync`, `RegistrarEntradaAsync`, `ReabastecerTiendaAsync` | Sufijos y patrones: `Service`, `Dto`, `Request`, `Result`, `Configuration`, `Middleware` |
+| Módulos: `Catalogo`, `Inventario`, `Productos`, `Listas` | Base técnica: `BaseEntity`, `DomainException`, `AppDbContext`, `Id`, `CreatedAt` |
+| Tablas, rutas, campos JSON y mensajes de error | Parámetros técnicos: `cancellationToken`, `request`, `service` |
+
+Se ve así: `Tienda.Application.Productos.ProductoService`,
+`ProductoConfiguration`, `CrearProductoRequest`. Detalle y motivos en la
+decisión 011 de [`docs/decisiones.md`](docs/decisiones.md).
 
 ---
 
@@ -85,11 +94,11 @@ dotnet restore
 dotnet tool install --global dotnet-ef        # una sola vez
 
 # Crear la migración inicial (el esquema ya sale en español)
-dotnet ef migrations add CreacionInicial -p src/Tienda.Infraestructura -s src/Tienda.Api --output-dir Migraciones
+dotnet ef migrations add CreacionInicial -p src/Tienda.Infrastructure -s src/Tienda.Api --output-dir Migrations
 
 # En desarrollo la API aplica las migraciones sola al arrancar.
 # Si prefieres hacerlo a mano:
-dotnet ef database update -p src/Tienda.Infraestructura -s src/Tienda.Api
+dotnet ef database update -p src/Tienda.Infrastructure -s src/Tienda.Api
 
 dotnet run --project src/Tienda.Api
 ```
@@ -130,8 +139,8 @@ Las respuestas viajan con nombres en español y los enums como texto
 |---|---|---|
 | `GET` | `/api/productos` | Listado con búsqueda y paginación (`busqueda`, `incluirInactivos`, `pagina`, `elementosPorPagina`) |
 | `POST` | `/api/productos` | Crea el producto con todas sus variantes |
-| `POST` | `/api/productos/{identificador}/desactivar` | Desactiva (no se borra) |
-| `POST` | `/api/productos/{identificador}/activar` | Reactiva |
+| `POST` | `/api/productos/{id}/desactivar` | Desactiva (no se borra) |
+| `POST` | `/api/productos/{id}/activar` | Reactiva |
 
 ### Inventario — MVP 1 (interno)
 
@@ -156,7 +165,7 @@ Las respuestas viajan con nombres en español y los enums como texto
 | Método | Ruta | Qué hace |
 |---|---|---|
 | `GET` | `/api/catalogo/productos` | Búsqueda, filtros, orden (`nombre`, `precio_ascendente`, `precio_descendente`, `recientes`) y paginación |
-| `GET` | `/api/catalogo/productos/{identificador}` | Ficha del producto con sus variantes |
+| `GET` | `/api/catalogo/productos/{id}` | Ficha del producto con sus variantes |
 | `GET` | `/api/catalogo/filtros` | Categorías, marcas, colores y tallas que hoy se pueden comprar |
 
 ---

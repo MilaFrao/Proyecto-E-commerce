@@ -1,7 +1,7 @@
-namespace Tienda.Aplicacion.Abstracciones;
+namespace Tienda.Application.Abstractions;
 
 /// <summary>Reloj inyectable: sin esto los tests de movimientos son imposibles de fijar.</summary>
-public interface IProveedorFechaHora
+public interface IDateTimeProvider
 {
-    DateTime AhoraUtc { get; }
+    DateTime UtcNow { get; }
 }

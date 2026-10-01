@@ -128,7 +128,7 @@ Esa expresión tiene que estar en un solo lugar, no repartida por el código.
 
 ## 008 — Todo el código del backend en español
 
-**Fecha:** 2026-10-01 · **Estado:** aceptada
+**Fecha:** 2026-10-01 · **Estado:** reemplazada en parte por la 011 (los nombres de capas y de piezas técnicas vuelven al inglés; lo del negocio sigue en español)
 
 Clases, propiedades, métodos, parámetros, variables, tablas y columnas se
 escriben en español. Se conservan en inglés solo los nombres que impone el
@@ -199,6 +199,47 @@ Se resuelven así:
 **Endpoints que el frontend ya asume y aún no existen:** lista de surtido
 pendiente, historial global de movimientos, resumen del panel, detalle y edición
 de producto, usuarios/autenticación, umbral de stock bajo.
+
+---
+
+## 011 — Negocio en español, estructura técnica en inglés
+
+**Fecha:** 2026-10-01 · **Estado:** aceptada
+
+La 008 tradujo todo, y traducir `Domain` como `Dominio` o `Service` como
+`Servicio` no ayuda: son términos de arquitectura que en cualquier documentación,
+tutorial o mensaje de error aparecen en inglés. Se corrige el criterio:
+
+- **Español:** lo que pertenece al negocio de la tienda — entidades y sus
+  propiedades, enums, casos de uso, módulos (`Catalogo`, `Inventario`,
+  `Productos`, `Listas`), tablas, rutas, campos JSON y mensajes al usuario.
+- **Inglés:** lo que pertenece a la estructura — capas y proyectos, carpetas
+  técnicas, sufijos de patrón (`Service`, `Dto`, `Request`, `Result`,
+  `Configuration`, `Middleware`) y parámetros técnicos (`cancellationToken`).
+
+| Antes (008) | Ahora |
+|---|---|
+| `Tienda.Dominio` / `Aplicacion` / `Infraestructura` | `Tienda.Domain` / `Application` / `Infrastructure` |
+| `Tienda.Dominio.Pruebas` | `Tienda.Domain.Tests` |
+| carpetas `Comun`, `Abstracciones`, `Datos`, `Persistencia`, `Configuraciones`, `DatosIniciales`, `Servicios`, `Rutas`, `ManejoSolicitudes`, `Identidad` | `Common`, `Abstractions`, `Dtos`, `Persistence`, `Configurations`, `Seed`, `Services`, `Endpoints`, `Middleware`, `Identity` |
+| `EntidadBase`, `ExcepcionDominio` | `BaseEntity`, `DomainException` |
+| `Identificador`, `CreadoEn`, `ActualizadoEn` | `Id`, `CreatedAt`, `UpdatedAt` |
+| `Resultado` / `ResultadoPaginado` | `Result` / `PagedResult` (`IsSuccess`, `Value`, `Success()`, `Failure()`) |
+| `ContextoBaseDatos`, `IProveedorFechaHora` | `AppDbContext`, `IDateTimeProvider` |
+| `ServicioProducto`, `IServicioProducto` | `ProductoService`, `IProductoService` |
+| `ConfiguracionProducto` | `ProductoConfiguration` |
+| `RutasProducto` / `MapearRutasProducto` | `ProductoEndpoints` / `MapProductoEndpoints` |
+| `SolicitudCrearProducto` | `CrearProductoRequest` |
+| `UsuarioAplicacion`, `RolAplicacion` | `Usuario`, `Rol` |
+| `GeneradorSegmentosUrl`, `SegmentoUrl` | `Slug` |
+
+**Sin cambios:** las entidades de negocio (`Producto`, `VarianteProducto`,
+`NivelExistencias`, `MovimientoExistencias`…), las tablas, las rutas y los
+campos JSON. El frontend no se toca. Lo único que cambia hacia afuera es
+`identificador` → `id` en el JSON.
+
+**Regla práctica:** carpeta = namespace = nombre del archivo, y las migraciones
+vuelven a llamarse como las genera EF (`Migrations/`).
 
 ---
 

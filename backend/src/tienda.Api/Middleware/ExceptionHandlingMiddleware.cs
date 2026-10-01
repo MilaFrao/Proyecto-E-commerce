@@ -1,15 +1,15 @@
 using System.Net;
 using System.Text.Json;
-using Tienda.Dominio.Comun;
+using Tienda.Domain.Common;
 
-namespace Tienda.Api.ManejoSolicitudes;
+namespace Tienda.Api.Middleware;
 
-public class MiddlewareManejoExcepciones
+public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ILogger<MiddlewareManejoExcepciones> _logger;
+    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
-    public MiddlewareManejoExcepciones(RequestDelegate next, ILogger<MiddlewareManejoExcepciones> logger)
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
     {
         _next = next;
         _logger = logger;
@@ -21,21 +21,21 @@ public class MiddlewareManejoExcepciones
         {
             await _next(context);
         }
-        catch (ExcepcionDominio ex)
+        catch (DomainException exception)
         {
-            _logger.LogWarning(ex, "Regla de negocio violada");
-            await WriteAsync(context, HttpStatusCode.BadRequest, ex.Message);
+            _logger.LogWarning(exception, "Regla de negocio violada");
+            await WriteResponseAsync(context, HttpStatusCode.BadRequest, exception.Message);
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            _logger.LogError(ex, "Error no controlado");
-            await WriteAsync(context, HttpStatusCode.InternalServerError, "Ocurrio un error inesperado.");
+            _logger.LogError(exception, "Error no controlado");
+            await WriteResponseAsync(context, HttpStatusCode.InternalServerError, "Ocurrio un error inesperado.");
         }
     }
 
-    private static Task WriteAsync(HttpContext context, HttpStatusCode code, string message)
+    private static Task WriteResponseAsync(HttpContext context, HttpStatusCode statusCode, string message)
     {
-        context.Response.StatusCode = (int)code;
+        context.Response.StatusCode = (int)statusCode;
         context.Response.ContentType = "application/json";
         return context.Response.WriteAsync(JsonSerializer.Serialize(new { error = message }));
     }

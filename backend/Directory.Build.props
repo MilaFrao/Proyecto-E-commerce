@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Cambia aqui la version de .NET una sola vez para toda la solucion -->
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+</Project>

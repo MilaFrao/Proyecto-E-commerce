@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\Tienda.Domain\Tienda.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Solo la abstraccion de EF, NO el proveedor. El proveedor vive en Infrastructure. -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.10" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="8.0.2" />
+  </ItemGroup>
+</Project>

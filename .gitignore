@@ -1,0 +1,30 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# Entorno
+.env*
+.env.local
+.env.*.local
+appsettings.Production.json
+
+# Editores
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+.editorconfig
+
+# Logs
+*.log
+npm-debug.log*

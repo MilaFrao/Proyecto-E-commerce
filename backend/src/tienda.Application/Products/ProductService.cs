@@ -1,203 +1,203 @@
 using Microsoft.EntityFrameworkCore;
-using Tienda.Application.Abstractions;
-using Tienda.Application.Common;
-using Tienda.Application.Products.Dtos;
-using Tienda.Domain.Catalog;
-using Tienda.Domain.Enums;
+using Tienda.Aplicacion.Abstracciones;
+using Tienda.Aplicacion.Comun;
+using Tienda.Aplicacion.Productos.Dtos;
+using Tienda.Dominio.Catalogo;
+using Tienda.Dominio.Enumeraciones;
 
-namespace Tienda.Application.Products;
+namespace Tienda.Aplicacion.Productos;
 
-public class ProductService : IProductService
+public class ServicioProducto : IServicioProducto
 {
-    private readonly IAppDbContext _db;
-    private readonly IDateTimeProvider _clock;
+    private readonly IContextoBaseDatos _db;
+    private readonly IProveedorFechaHora _clock;
 
-    public ProductService(IAppDbContext db, IDateTimeProvider clock)
+    public ServicioProducto(IContextoBaseDatos db, IProveedorFechaHora clock)
     {
         _db = db;
         _clock = clock;
     }
 
-    public async Task<PagedResult<ProductDto>> ListAsync(string? search, bool includeInactive, int page, int pageSize, CancellationToken ct = default)
+    public async Task<ResultadoPaginado<ProductoDto>> ListarAsync(string? busqueda, bool incluirInactivos, int pagina, int elementosPorPagina, CancellationToken tokenCancelacion = default)
     {
-        page = Math.Max(page, 1);
-        pageSize = Math.Clamp(pageSize, 1, 100);
+        pagina = Math.Max(pagina, 1);
+        elementosPorPagina = Math.Clamp(elementosPorPagina, 1, 100);
 
-        IQueryable<Product> q = _db.Products.AsNoTracking();
+        IQueryable<Producto> q = _db.Productos.AsNoTracking();
 
-        if (!includeInactive)
-            q = q.Where(p => p.Status == ProductStatus.Active);
+        if (!incluirInactivos)
+            q = q.Where(p => p.Estado == EstadoProducto.Activo);
 
-        var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim().ToLower();
+        var term = string.IsNullOrWhiteSpace(busqueda) ? null : busqueda.Trim().ToLower();
         if (term is not null)
         {
             q = q.Where(p =>
-                p.Name.ToLower().Contains(term) ||
-                p.Reference.ToLower().Contains(term) ||
-                (p.Brand != null && p.Brand.Name.ToLower().Contains(term)));
+                p.Nombre.ToLower().Contains(term) ||
+                p.Referencia.ToLower().Contains(term) ||
+                (p.Marca != null && p.Marca.Nombre.ToLower().Contains(term)));
         }
 
-        var total = await q.CountAsync(ct);
+        var total = await q.CountAsync(tokenCancelacion);
 
         var items = await q
-            .OrderBy(p => p.Name)
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
-            .Select(p => new ProductDto(
-                p.Id,
-                p.Name,
-                p.Reference,
-                p.Description,
-                p.Category!.Name,
-                p.Brand != null ? p.Brand.Name : null,
-                p.RetailPrice,
-                p.WholesalePrice,
-                p.Status,
-                p.Variants.Count))
-            .ToListAsync(ct);
+            .OrderBy(p => p.Nombre)
+            .Skip((pagina - 1) * elementosPorPagina)
+            .Take(elementosPorPagina)
+            .Select(p => new ProductoDto(
+                p.Identificador,
+                p.Nombre,
+                p.Referencia,
+                p.Descripcion,
+                p.Categoria!.Nombre,
+                p.Marca != null ? p.Marca.Nombre : null,
+                p.PrecioVenta,
+                p.PrecioMayorista,
+                p.Estado,
+                p.Variantes.Count))
+            .ToListAsync(tokenCancelacion);
 
-        return new PagedResult<ProductDto>
+        return new ResultadoPaginado<ProductoDto>
         {
-            Items = items,
-            Page = page,
-            PageSize = pageSize,
-            TotalItems = total
+            Elementos = items,
+            Pagina = pagina,
+            ElementosPorPagina = elementosPorPagina,
+            CantidadTotal = total
         };
     }
 
-    public async Task<Result<ProductDto>> CreateAsync(CreateProductRequest request, CancellationToken ct = default)
+    public async Task<Resultado<ProductoDto>> CrearAsync(SolicitudCrearProducto solicitud, CancellationToken tokenCancelacion = default)
     {
-        var name = request.Name?.Trim() ?? string.Empty;
-        var reference = request.Reference?.Trim() ?? string.Empty;
+        var name = solicitud.Nombre?.Trim() ?? string.Empty;
+        var reference = solicitud.Referencia?.Trim() ?? string.Empty;
 
-        if (name.Length == 0) return Result.Failure<ProductDto>("El nombre es obligatorio.");
-        if (reference.Length == 0) return Result.Failure<ProductDto>("La referencia es obligatoria.");
-        if (request.RetailPrice < 0 || request.WholesalePrice < 0)
-            return Result.Failure<ProductDto>("Los precios no pueden ser negativos.");
+        if (name.Length == 0) return Resultado.Fallo<ProductoDto>("El nombre es obligatorio.");
+        if (reference.Length == 0) return Resultado.Fallo<ProductoDto>("La referencia es obligatoria.");
+        if (solicitud.PrecioVenta < 0 || solicitud.PrecioMayorista < 0)
+            return Resultado.Fallo<ProductoDto>("Los precios no pueden ser negativos.");
 
-        if (request.Variants is null || request.Variants.Count == 0)
-            return Result.Failure<ProductDto>("Agrega al menos una variante (color y talla).");
+        if (solicitud.Variantes is null || solicitud.Variantes.Count == 0)
+            return Resultado.Fallo<ProductoDto>("Agrega al menos una variante (color y talla).");
 
-        var category = await _db.Categories.AsNoTracking().FirstOrDefaultAsync(c => c.Id == request.CategoryId, ct);
-        if (category is null) return Result.Failure<ProductDto>("La categoria no existe.");
+        var category = await _db.Categorias.AsNoTracking().FirstOrDefaultAsync(c => c.Identificador == solicitud.CategoriaId, tokenCancelacion);
+        if (category is null) return Resultado.Fallo<ProductoDto>("La categoria no existe.");
 
         string? brandName = null;
-        if (request.BrandId is not null)
+        if (solicitud.MarcaId is not null)
         {
-            brandName = await _db.Brands.AsNoTracking()
-                .Where(b => b.Id == request.BrandId)
-                .Select(b => b.Name)
-                .FirstOrDefaultAsync(ct);
+            brandName = await _db.Marcas.AsNoTracking()
+                .Where(b => b.Identificador == solicitud.MarcaId)
+                .Select(b => b.Nombre)
+                .FirstOrDefaultAsync(tokenCancelacion);
 
-            if (brandName is null) return Result.Failure<ProductDto>("La marca no existe.");
+            if (brandName is null) return Resultado.Fallo<ProductoDto>("La marca no existe.");
         }
 
-        if (await _db.Products.AnyAsync(p => p.Reference == reference, ct))
-            return Result.Failure<ProductDto>("Ya existe un producto con esa referencia.");
+        if (await _db.Productos.AnyAsync(p => p.Referencia == reference, tokenCancelacion))
+            return Resultado.Fallo<ProductoDto>("Ya existe un producto con esa referencia.");
 
         // ---- variantes: validar antes de tocar la base
-        var variants = new List<ProductVariant>();
+        var variants = new List<VarianteProducto>();
         var seenSkus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var seenCombos = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var input in request.Variants)
+        foreach (var input in solicitud.Variantes)
         {
-            var sku = input.Sku?.Trim() ?? string.Empty;
+            var sku = input.CodigoSku?.Trim() ?? string.Empty;
             var color = input.Color?.Trim() ?? string.Empty;
-            var size = input.Size?.Trim() ?? string.Empty;
+            var size = input.Talla?.Trim() ?? string.Empty;
 
             if (sku.Length == 0 || color.Length == 0 || size.Length == 0)
-                return Result.Failure<ProductDto>("Cada variante necesita SKU, color y talla.");
+                return Resultado.Fallo<ProductoDto>("Cada variante necesita SKU, color y talla.");
 
             if (!seenSkus.Add(sku))
-                return Result.Failure<ProductDto>($"El SKU '{sku}' esta repetido dentro del producto.");
+                return Resultado.Fallo<ProductoDto>($"El SKU '{sku}' esta repetido dentro del producto.");
 
             if (!seenCombos.Add($"{color}|{size}"))
-                return Result.Failure<ProductDto>($"La combinacion {color} / {size} esta repetida.");
+                return Resultado.Fallo<ProductoDto>($"La combinacion {color} / {size} esta repetida.");
 
-            variants.Add(new ProductVariant
+            variants.Add(new VarianteProducto
             {
-                Sku = sku,
+                CodigoSku = sku,
                 Color = color,
-                Size = size,
-                RetailPriceOverride = input.RetailPriceOverride,
-                WholesalePriceOverride = input.WholesalePriceOverride
+                Talla = size,
+                PrecioVentaAlternativo = input.PrecioVentaAlternativo,
+                PrecioMayoristaAlternativo = input.PrecioMayoristaAlternativo
             });
         }
 
-        var skuList = variants.Select(v => v.Sku).ToList();
-        var takenSku = await _db.ProductVariants
-            .Where(v => skuList.Contains(v.Sku))
-            .Select(v => v.Sku)
-            .FirstOrDefaultAsync(ct);
+        var skuList = variants.Select(v => v.CodigoSku).ToList();
+        var takenSku = await _db.VariantesProducto
+            .Where(v => skuList.Contains(v.CodigoSku))
+            .Select(v => v.CodigoSku)
+            .FirstOrDefaultAsync(tokenCancelacion);
 
         if (takenSku is not null)
-            return Result.Failure<ProductDto>($"El SKU '{takenSku}' ya esta en uso por otra variante.");
+            return Resultado.Fallo<ProductoDto>($"El SKU '{takenSku}' ya esta en uso por otra variante.");
 
         // ---- crear
-        var product = new Product
+        var product = new Producto
         {
-            Name = name,
-            Reference = reference,
-            Description = string.IsNullOrWhiteSpace(request.Description) ? null : request.Description.Trim(),
-            CategoryId = category.Id,
-            BrandId = request.BrandId,
-            RetailPrice = request.RetailPrice,
-            WholesalePrice = request.WholesalePrice
+            Nombre = name,
+            Referencia = reference,
+            Descripcion = string.IsNullOrWhiteSpace(solicitud.Descripcion) ? null : solicitud.Descripcion.Trim(),
+            CategoriaId = category.Identificador,
+            MarcaId = solicitud.MarcaId,
+            PrecioVenta = solicitud.PrecioVenta,
+            PrecioMayorista = solicitud.PrecioMayorista
         };
 
         foreach (var variant in variants)
         {
-            variant.ProductId = product.Id;
-            product.Variants.Add(variant);
+            variant.ProductoId = product.Identificador;
+            product.Variantes.Add(variant);
         }
 
-        if (!string.IsNullOrWhiteSpace(request.ImageUrl))
+        if (!string.IsNullOrWhiteSpace(solicitud.UrlImagen))
         {
-            product.Images.Add(new ProductImage
+            product.Imagenes.Add(new ImagenProducto
             {
-                ProductId = product.Id,
-                Url = request.ImageUrl.Trim(),
-                AltText = name,
-                IsPrimary = true
+                ProductoId = product.Identificador,
+                DireccionUrl = solicitud.UrlImagen.Trim(),
+                TextoAlternativo = name,
+                EsPrincipal = true
             });
         }
 
-        _db.Products.Add(product);
-        await _db.SaveChangesAsync(ct);
+        _db.Productos.Add(product);
+        await _db.SaveChangesAsync(tokenCancelacion);
 
-        return Result.Success(new ProductDto(
-            product.Id, product.Name, product.Reference, product.Description,
-            category.Name, brandName,
-            product.RetailPrice, product.WholesalePrice,
-            product.Status, variants.Count));
+        return Resultado.Exito(new ProductoDto(
+            product.Identificador, product.Nombre, product.Referencia, product.Descripcion,
+            category.Nombre, brandName,
+            product.PrecioVenta, product.PrecioMayorista,
+            product.Estado, variants.Count));
     }
 
-    public async Task<Result> DeactivateAsync(Guid id, string? reason, CancellationToken ct = default)
+    public async Task<Resultado> DesactivarAsync(Guid identificador, string? motivo, CancellationToken tokenCancelacion = default)
     {
-        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id, ct);
-        if (product is null) return Result.Failure("El producto no existe.");
+        var product = await _db.Productos.FirstOrDefaultAsync(p => p.Identificador == identificador, tokenCancelacion);
+        if (product is null) return Resultado.Fallo("El producto no existe.");
 
-        product.Status = ProductStatus.Inactive;
-        product.DeactivatedAt = _clock.UtcNow;
-        product.DeactivationReason = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
-        product.UpdatedAt = _clock.UtcNow;
+        product.Estado = EstadoProducto.Inactivo;
+        product.DesactivadoEn = _clock.AhoraUtc;
+        product.MotivoDesactivacion = string.IsNullOrWhiteSpace(motivo) ? null : motivo.Trim();
+        product.ActualizadoEn = _clock.AhoraUtc;
 
-        await _db.SaveChangesAsync(ct);
-        return Result.Success();
+        await _db.SaveChangesAsync(tokenCancelacion);
+        return Resultado.Exito();
     }
 
-    public async Task<Result> ActivateAsync(Guid id, CancellationToken ct = default)
+    public async Task<Resultado> ActivarAsync(Guid identificador, CancellationToken tokenCancelacion = default)
     {
-        var product = await _db.Products.FirstOrDefaultAsync(p => p.Id == id, ct);
-        if (product is null) return Result.Failure("El producto no existe.");
+        var product = await _db.Productos.FirstOrDefaultAsync(p => p.Identificador == identificador, tokenCancelacion);
+        if (product is null) return Resultado.Fallo("El producto no existe.");
 
-        product.Status = ProductStatus.Active;
-        product.DeactivatedAt = null;
-        product.DeactivationReason = null;
-        product.UpdatedAt = _clock.UtcNow;
+        product.Estado = EstadoProducto.Activo;
+        product.DesactivadoEn = null;
+        product.MotivoDesactivacion = null;
+        product.ActualizadoEn = _clock.AhoraUtc;
 
-        await _db.SaveChangesAsync(ct);
-        return Result.Success();
+        await _db.SaveChangesAsync(tokenCancelacion);
+        return Resultado.Exito();
     }
 }

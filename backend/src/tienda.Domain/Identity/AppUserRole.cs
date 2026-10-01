@@ -1,10 +1,10 @@
-namespace Tienda.Domain.Identity;
+namespace Tienda.Dominio.Identidad;
 
-public class AppUserRole
+public class RolUsuarioAplicacion
 {
-    public Guid UserId { get; set; }
-    public AppUser? User { get; set; }
+    public Guid UsuarioId { get; set; }
+    public UsuarioAplicacion? Usuario { get; set; }
 
-    public Guid RoleId { get; set; }
-    public AppRole? Role { get; set; }
+    public Guid RolId { get; set; }
+    public RolAplicacion? Rol { get; set; }
 }

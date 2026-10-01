@@ -1,12 +1,12 @@
-using Tienda.Application.Common;
-using Tienda.Application.Lookups.Dtos;
+using Tienda.Aplicacion.Comun;
+using Tienda.Aplicacion.Listas.Dtos;
 
-namespace Tienda.Application.Lookups;
+namespace Tienda.Aplicacion.Listas;
 
-public interface ILookupService
+public interface IServicioListas
 {
-    Task<IReadOnlyList<LookupItemDto>> GetCategoriesAsync(CancellationToken ct = default);
-    Task<IReadOnlyList<LookupItemDto>> GetBrandsAsync(CancellationToken ct = default);
-    Task<Result<LookupItemDto>> CreateCategoryAsync(string name, Guid? parentId, CancellationToken ct = default);
-    Task<Result<LookupItemDto>> CreateBrandAsync(string name, CancellationToken ct = default);
+    Task<IReadOnlyList<ElementoListaDto>> ObtenerCategoriasAsync(CancellationToken tokenCancelacion = default);
+    Task<IReadOnlyList<ElementoListaDto>> ObtenerMarcasAsync(CancellationToken tokenCancelacion = default);
+    Task<Resultado<ElementoListaDto>> CrearCategoriaAsync(string nombre, Guid? identificadorPadre, CancellationToken tokenCancelacion = default);
+    Task<Resultado<ElementoListaDto>> CrearMarcaAsync(string nombre, CancellationToken tokenCancelacion = default);
 }

@@ -1,26 +1,26 @@
-using Tienda.Application.Catalog.Dtos;
-using Tienda.Application.Common;
+using Tienda.Aplicacion.Catalogo.Dtos;
+using Tienda.Aplicacion.Comun;
 
-namespace Tienda.Application.Catalog;
+namespace Tienda.Aplicacion.Catalogo;
 
-public interface ICatalogService
+public interface IServicioCatalogo
 {
     /// <summary>Solo productos con al menos una variante surtida. Regla de la seccion 17.</summary>
-    Task<PagedResult<CatalogProductDto>> BrowseAsync(CatalogQuery query, CancellationToken ct = default);
+    Task<ResultadoPaginado<ProductoCatalogoDto>> ExplorarAsync(ConsultaCatalogo consulta, CancellationToken tokenCancelacion = default);
 
-    Task<CatalogProductDto?> GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task<ProductoCatalogoDto?> ObtenerPorIdAsync(Guid identificador, CancellationToken tokenCancelacion = default);
 
-    Task<CatalogFiltersDto> GetFiltersAsync(CancellationToken ct = default);
+    Task<FiltrosCatalogoDto> ObtenerFiltrosAsync(CancellationToken tokenCancelacion = default);
 }
 
-public record CatalogQuery(
-    string? Search = null,
-    Guid? CategoryId = null,
-    Guid? BrandId = null,
+public record ConsultaCatalogo(
+    string? Busqueda = null,
+    Guid? CategoriaId = null,
+    Guid? MarcaId = null,
     string? Color = null,
-    string? Size = null,
-    decimal? MinPrice = null,
-    decimal? MaxPrice = null,
-    string SortBy = "name",
-    int Page = 1,
-    int PageSize = 24);
+    string? Talla = null,
+    decimal? PrecioMinimo = null,
+    decimal? PrecioMaximo = null,
+    string OrdenarPor = "nombre",
+    int Pagina = 1,
+    int ElementosPorPagina = 24);

@@ -1,19 +1,19 @@
-namespace Tienda.Application.Products.Dtos;
+namespace Tienda.Aplicacion.Productos.Dtos;
 
-public record CreateProductRequest(
-    string Name,
-    string Reference,
-    string? Description,
-    Guid CategoryId,
-    Guid? BrandId,
-    decimal RetailPrice,
-    decimal WholesalePrice,
-    string? ImageUrl,
-    IReadOnlyList<VariantInput> Variants);
+public record SolicitudCrearProducto(
+    string Nombre,
+    string Referencia,
+    string? Descripcion,
+    Guid CategoriaId,
+    Guid? MarcaId,
+    decimal PrecioVenta,
+    decimal PrecioMayorista,
+    string? UrlImagen,
+    IReadOnlyList<EntradaVariante> Variantes);
 
-public record VariantInput(
-    string Sku,
+public record EntradaVariante(
+    string CodigoSku,
     string Color,
-    string Size,
-    decimal? RetailPriceOverride = null,
-    decimal? WholesalePriceOverride = null);
+    string Talla,
+    decimal? PrecioVentaAlternativo = null,
+    decimal? PrecioMayoristaAlternativo = null);

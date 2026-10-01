@@ -1,55 +1,55 @@
 using System.Text.Json.Serialization;
-using Tienda.Api.Endpoints;
-using Tienda.Api.Middleware;
-using Tienda.Application;
-using Tienda.Infrastructure;
-using Tienda.Infrastructure.Persistence.Seed;
+using Tienda.Api.Rutas;
+using Tienda.Api.ManejoSolicitudes;
+using Tienda.Aplicacion;
+using Tienda.Infraestructura;
+using Tienda.Infraestructura.Persistencia.DatosIniciales;
 
-var builder = WebApplication.CreateBuilder(args);
+var constructor = WebApplication.CreateBuilder(args);
 
-builder.Services.AddApplication();
-builder.Services.AddInfrastructure(builder.Configuration);
+constructor.Services.AgregarAplicacion();
+constructor.Services.AgregarInfraestructura(constructor.Configuration);
 
-// Los enums viajan como texto ("Entry", "Active"), no como numeros: el front los lee tal cual.
-builder.Services.ConfigureHttpJsonOptions(options =>
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+// Los enums viajan como texto ("Entrada", "Activo"), no como numeros.
+constructor.Services.ConfigureHttpJsonOptions(opciones =>
+    opciones.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+constructor.Services.AddEndpointsApiExplorer();
+constructor.Services.AddSwaggerGen();
 
-const string FrontendCors = "frontend";
-builder.Services.AddCors(options =>
-    options.AddPolicy(FrontendCors, policy => policy
+const string PoliticaCorsInterfaz = "interfaz";
+constructor.Services.AddCors(opciones =>
+    opciones.AddPolicy(PoliticaCorsInterfaz, politica => politica
         .WithOrigins("http://localhost:5173")
         .AllowAnyHeader()
         .AllowAnyMethod()));
 
-var app = builder.Build();
+var aplicacion = constructor.Build();
 
-app.UseMiddleware<ExceptionHandlingMiddleware>();
+aplicacion.UseMiddleware<MiddlewareManejoExcepciones>();
 
-if (app.Environment.IsDevelopment())
+if (aplicacion.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    aplicacion.UseSwagger();
+    aplicacion.UseSwaggerUI();
 
     // Aplica migraciones pendientes y carga datos de prueba si la base esta vacia.
-    await DevSeeder.SeedAsync(app.Services);
+    await SembradorDesarrollo.CargarDatosPruebaAsync(aplicacion.Services);
 }
 
-app.UseCors(FrontendCors);
+aplicacion.UseCors(PoliticaCorsInterfaz);
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok", at = DateTime.UtcNow }))
+aplicacion.MapGet("/salud", () => Results.Ok(new { estado = "correcto", fechaHora = DateTime.UtcNow }))
    .WithTags("Sistema");
 
 // MVP 1 - interno
-app.MapProductEndpoints();
-app.MapInventoryEndpoints();
+aplicacion.MapearRutasProducto();
+aplicacion.MapearRutasInventario();
 
 // Listas compartidas (categorias, marcas)
-app.MapLookupEndpoints();
+aplicacion.MapearRutasListas();
 
 // MVP 2 - publico
-app.MapCatalogEndpoints();
+aplicacion.MapearRutasCatalogo();
 
-app.Run();
+aplicacion.Run();

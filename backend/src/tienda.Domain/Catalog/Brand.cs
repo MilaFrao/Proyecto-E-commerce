@@ -1,11 +1,11 @@
-using Tienda.Domain.Common;
+using Tienda.Dominio.Comun;
 
-namespace Tienda.Domain.Catalog;
+namespace Tienda.Dominio.Catalogo;
 
-public class Brand : BaseEntity
+public class Marca : EntidadBase
 {
-    public string Name { get; set; } = string.Empty;
-    public bool IsActive { get; set; } = true;
+    public string Nombre { get; set; } = string.Empty;
+    public bool EstaActiva { get; set; } = true;
 
-    public ICollection<Product> Products { get; set; } = new List<Product>();
+    public ICollection<Producto> Productos { get; set; } = new List<Producto>();
 }

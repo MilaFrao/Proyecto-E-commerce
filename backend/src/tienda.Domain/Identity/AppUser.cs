@@ -1,17 +1,17 @@
-using Tienda.Domain.Common;
+using Tienda.Dominio.Comun;
 
-namespace Tienda.Domain.Identity;
+namespace Tienda.Dominio.Identidad;
 
 /// <summary>
 /// Placeholder del MVP de autenticacion. Cuando decidas el mecanismo definitivo
 /// (ASP.NET Identity o JWT propio) esta clase es el punto de entrada.
 /// </summary>
-public class AppUser : BaseEntity
+public class UsuarioAplicacion : EntidadBase
 {
-    public string Email { get; set; } = string.Empty;
-    public string FullName { get; set; } = string.Empty;
-    public string PasswordHash { get; set; } = string.Empty;
-    public bool IsActive { get; set; } = true;
+    public string CorreoElectronico { get; set; } = string.Empty;
+    public string NombreCompleto { get; set; } = string.Empty;
+    public string HuellaContrasena { get; set; } = string.Empty;
+    public bool EstaActivo { get; set; } = true;
 
-    public ICollection<AppUserRole> Roles { get; set; } = new List<AppUserRole>();
+    public ICollection<RolUsuarioAplicacion> Roles { get; set; } = new List<RolUsuarioAplicacion>();
 }

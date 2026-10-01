@@ -1,14 +1,14 @@
-using Tienda.Domain.Common;
+using Tienda.Dominio.Comun;
 
-namespace Tienda.Domain.Catalog;
+namespace Tienda.Dominio.Catalogo;
 
-public class ProductImage : BaseEntity
+public class ImagenProducto : EntidadBase
 {
-    public Guid ProductId { get; set; }
-    public Product? Product { get; set; }
+    public Guid ProductoId { get; set; }
+    public Producto? Producto { get; set; }
 
-    public string Url { get; set; } = string.Empty;
-    public string? AltText { get; set; }
-    public bool IsPrimary { get; set; }
-    public int SortOrder { get; set; }
+    public string DireccionUrl { get; set; } = string.Empty;
+    public string? TextoAlternativo { get; set; }
+    public bool EsPrincipal { get; set; }
+    public int Orden { get; set; }
 }

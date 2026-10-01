@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using Tienda.Infrastructure.Persistence;
+using Tienda.Infraestructura.Persistencia;
 
 #nullable disable
 
-namespace Tienda.Infrastructure.Migrations
+namespace Tienda.Infraestructura.Migrations
 {
-    [DbContext(typeof(AppDbContext))]
+    [DbContext(typeof(ContextoBaseDatos))]
     [Migration("20260928193931_InitialCreate")]
     partial class InitialCreate
     {

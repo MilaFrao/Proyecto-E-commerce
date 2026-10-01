@@ -1,15 +1,15 @@
 using System.Net;
 using System.Text.Json;
-using Tienda.Domain.Common;
+using Tienda.Dominio.Comun;
 
-namespace Tienda.Api.Middleware;
+namespace Tienda.Api.ManejoSolicitudes;
 
-public class ExceptionHandlingMiddleware
+public class MiddlewareManejoExcepciones
 {
     private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
+    private readonly ILogger<MiddlewareManejoExcepciones> _logger;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    public MiddlewareManejoExcepciones(RequestDelegate next, ILogger<MiddlewareManejoExcepciones> logger)
     {
         _next = next;
         _logger = logger;
@@ -21,7 +21,7 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
-        catch (DomainException ex)
+        catch (ExcepcionDominio ex)
         {
             _logger.LogWarning(ex, "Regla de negocio violada");
             await WriteAsync(context, HttpStatusCode.BadRequest, ex.Message);

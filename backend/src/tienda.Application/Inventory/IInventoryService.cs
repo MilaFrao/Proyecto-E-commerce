@@ -1,23 +1,23 @@
-using Tienda.Application.Common;
-using Tienda.Application.Inventory.Dtos;
+using Tienda.Aplicacion.Comun;
+using Tienda.Aplicacion.Inventario.Dtos;
 
-namespace Tienda.Application.Inventory;
+namespace Tienda.Aplicacion.Inventario;
 
-public interface IInventoryService
+public interface IServicioInventario
 {
     /// <summary>Entrada de mercancia. Siempre ingresa al deposito, nunca directo a tienda.</summary>
-    Task<Result<StockSummaryDto>> RegisterEntryAsync(Guid variantId, int quantity, string? notes, CancellationToken ct = default);
+    Task<Resultado<ResumenExistenciasDto>> RegistrarEntradaAsync(Guid varianteId, int cantidad, string? notas, CancellationToken tokenCancelacion = default);
 
     /// <summary>Surtido: mueve unidades de deposito a tienda. Aqui es donde nace la disponibilidad.</summary>
-    Task<Result<StockSummaryDto>> SupplyToStoreAsync(Guid variantId, int quantity, string? notes, CancellationToken ct = default);
+    Task<Resultado<ResumenExistenciasDto>> ReabastecerTiendaAsync(Guid varianteId, int cantidad, string? notas, CancellationToken tokenCancelacion = default);
 
     /// <summary>Venta: descuenta de tienda. Falla si no hay surtido suficiente.</summary>
-    Task<Result<StockSummaryDto>> RegisterSaleAsync(Guid variantId, int quantity, string? notes, CancellationToken ct = default);
+    Task<Resultado<ResumenExistenciasDto>> RegistrarVentaAsync(Guid varianteId, int cantidad, string? notas, CancellationToken tokenCancelacion = default);
 
-    Task<Result<StockSummaryDto>> GetStockAsync(Guid variantId, CancellationToken ct = default);
+    Task<Resultado<ResumenExistenciasDto>> ObtenerExistenciasAsync(Guid varianteId, CancellationToken tokenCancelacion = default);
 
     /// <summary>Busca variantes activas por nombre, referencia o SKU y devuelve su stock. Maximo 50.</summary>
-    Task<IReadOnlyList<VariantStockDto>> SearchVariantsAsync(string? search, CancellationToken ct = default);
+    Task<IReadOnlyList<ExistenciasVarianteDto>> BuscarVariantesAsync(string? busqueda, CancellationToken tokenCancelacion = default);
 
-    Task<IReadOnlyList<StockMovementDto>> GetMovementHistoryAsync(Guid variantId, CancellationToken ct = default);
+    Task<IReadOnlyList<MovimientoExistenciasDto>> ObtenerHistorialMovimientosAsync(Guid varianteId, CancellationToken tokenCancelacion = default);
 }

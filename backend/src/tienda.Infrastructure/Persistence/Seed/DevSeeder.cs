@@ -1,43 +1,43 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Tienda.Domain.Catalog;
-using Tienda.Domain.Enums;
-using Tienda.Domain.Inventory;
+using Tienda.Dominio.Catalogo;
+using Tienda.Dominio.Enumeraciones;
+using Tienda.Dominio.Inventario;
 
-namespace Tienda.Infrastructure.Persistence.Seed;
+namespace Tienda.Infraestructura.Persistencia.DatosIniciales;
 
 /// <summary>
 /// Solo desarrollo. Aplica las migraciones pendientes y, si la base esta vacia,
 /// carga un par de productos para poder probar el catalogo sin teclear todo a mano.
 /// </summary>
-public static class DevSeeder
+public static class SembradorDesarrollo
 {
-    public static async Task SeedAsync(IServiceProvider services, CancellationToken ct = default)
+    public static async Task CargarDatosPruebaAsync(IServiceProvider services, CancellationToken ct = default)
     {
         using var scope = services.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var db = scope.ServiceProvider.GetRequiredService<ContextoBaseDatos>();
 
         await db.Database.MigrateAsync(ct);
 
-        if (await db.Categories.AnyAsync(ct)) return;
+        if (await db.Categorias.AnyAsync(ct)) return;
 
-        var camisas = new Category { Name = "Camisas", Slug = "camisas", SortOrder = 1 };
-        var pantalones = new Category { Name = "Pantalones", Slug = "pantalones", SortOrder = 2 };
-        var interior = new Category { Name = "Ropa interior", Slug = "ropa-interior", SortOrder = 3 };
-        var calzado = new Category { Name = "Calzado", Slug = "calzado", SortOrder = 4 };
+        var camisas = new Categoria { Nombre = "Camisas", SegmentoUrl = "camisas", Orden = 1 };
+        var pantalones = new Categoria { Nombre = "Pantalones", SegmentoUrl = "pantalones", Orden = 2 };
+        var interior = new Categoria { Nombre = "Ropa interior", SegmentoUrl = "ropa-interior", Orden = 3 };
+        var calzado = new Categoria { Nombre = "Calzado", SegmentoUrl = "calzado", Orden = 4 };
 
-        var urban = new Brand { Name = "Urban Fit" };
-        var demo = new Brand { Name = "Marca Demo" };
+        var urban = new Marca { Nombre = "Urban Fit" };
+        var demo = new Marca { Nombre = "Marca Demo" };
 
-        db.Categories.AddRange(camisas, pantalones, interior, calzado);
-        db.Brands.AddRange(urban, demo);
+        db.Categorias.AddRange(camisas, pantalones, interior, calzado);
+        db.Marcas.AddRange(urban, demo);
 
-        db.Products.Add(BuildProduct(
+        db.Productos.Add(BuildProduct(
             "Camisa deportiva", "CAM-001", "Camisa ligera de secado rapido.",
             camisas, urban, 24.99m, 18m,
             new[] { "Negro", "Blanco" }, new[] { "S", "M", "L" }));
 
-        db.Products.Add(BuildProduct(
+        db.Productos.Add(BuildProduct(
             "Pantalon jogger", "PAN-001", "Jogger de algodon con puno elastico.",
             pantalones, demo, 34.50m, 26m,
             new[] { "Azul", "Gris" }, new[] { "M", "L", "XL" }));
@@ -45,20 +45,20 @@ public static class DevSeeder
         await db.SaveChangesAsync(ct);
     }
 
-    private static Product BuildProduct(
+    private static Producto BuildProduct(
         string name, string reference, string description,
-        Category category, Brand brand, decimal retail, decimal wholesale,
+        Categoria category, Marca brand, decimal retail, decimal wholesale,
         string[] colors, string[] sizes)
     {
-        var product = new Product
+        var product = new Producto
         {
-            Name = name,
-            Reference = reference,
-            Description = description,
-            CategoryId = category.Id,
-            BrandId = brand.Id,
-            RetailPrice = retail,
-            WholesalePrice = wholesale
+            Nombre = name,
+            Referencia = reference,
+            Descripcion = description,
+            CategoriaId = category.Identificador,
+            MarcaId = brand.Identificador,
+            PrecioVenta = retail,
+            PrecioMayorista = wholesale
         };
 
         var index = 0;
@@ -66,12 +66,12 @@ public static class DevSeeder
         {
             foreach (var size in sizes)
             {
-                var variant = new ProductVariant
+                var variant = new VarianteProducto
                 {
-                    ProductId = product.Id,
-                    Sku = $"{reference}-{color[..3].ToUpperInvariant()}-{size}",
+                    ProductoId = product.Identificador,
+                    CodigoSku = $"{reference}-{color[..3].ToUpperInvariant()}-{size}",
                     Color = color,
-                    Size = size
+                    Talla = size
                 };
 
                 // Una de cada tres variantes se queda en deposito sin surtir,
@@ -79,38 +79,38 @@ public static class DevSeeder
                 var supplied = index % 3 == 2 ? 0 : 8;
                 var warehouse = 20 - supplied;
 
-                variant.StockLevels.Add(new StockLevel { ProductVariantId = variant.Id, Location = StockLocation.Warehouse, Quantity = warehouse });
-                variant.StockLevels.Add(new StockLevel { ProductVariantId = variant.Id, Location = StockLocation.Store, Quantity = supplied });
+                variant.NivelesExistencias.Add(new NivelExistencias { VarianteProductoId = variant.Identificador, Ubicacion = UbicacionStock.Deposito, Cantidad = warehouse });
+                variant.NivelesExistencias.Add(new NivelExistencias { VarianteProductoId = variant.Identificador, Ubicacion = UbicacionStock.Tienda, Cantidad = supplied });
 
-                variant.Movements.Add(new StockMovement
+                variant.Movimientos.Add(new MovimientoExistencias
                 {
-                    ProductVariantId = variant.Id,
-                    Type = MovementType.Entry,
-                    Quantity = 20,
-                    ToLocation = StockLocation.Warehouse,
-                    ResultingWarehouseQuantity = 20,
-                    ResultingStoreQuantity = 0,
-                    OccurredAt = DateTime.UtcNow.AddDays(-3),
-                    Notes = "Carga inicial de datos de prueba"
+                    VarianteProductoId = variant.Identificador,
+                    Tipo = TipoMovimiento.Entrada,
+                    Cantidad = 20,
+                    UbicacionDestino = UbicacionStock.Deposito,
+                    CantidadResultanteDeposito = 20,
+                    CantidadResultanteTienda = 0,
+                    OcurridoEn = DateTime.UtcNow.AddDays(-3),
+                    Notas = "Carga inicial de datos de prueba"
                 });
 
                 if (supplied > 0)
                 {
-                    variant.Movements.Add(new StockMovement
+                    variant.Movimientos.Add(new MovimientoExistencias
                     {
-                        ProductVariantId = variant.Id,
-                        Type = MovementType.Transfer,
-                        Quantity = supplied,
-                        FromLocation = StockLocation.Warehouse,
-                        ToLocation = StockLocation.Store,
-                        ResultingWarehouseQuantity = warehouse,
-                        ResultingStoreQuantity = supplied,
-                        OccurredAt = DateTime.UtcNow.AddDays(-2),
-                        Notes = "Surtido inicial de prueba"
+                        VarianteProductoId = variant.Identificador,
+                        Tipo = TipoMovimiento.Traslado,
+                        Cantidad = supplied,
+                        UbicacionOrigen = UbicacionStock.Deposito,
+                        UbicacionDestino = UbicacionStock.Tienda,
+                        CantidadResultanteDeposito = warehouse,
+                        CantidadResultanteTienda = supplied,
+                        OcurridoEn = DateTime.UtcNow.AddDays(-2),
+                        Notas = "Surtido inicial de prueba"
                     });
                 }
 
-                product.Variants.Add(variant);
+                product.Variantes.Add(variant);
                 index++;
             }
         }

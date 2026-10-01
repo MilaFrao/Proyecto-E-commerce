@@ -126,12 +126,90 @@ Esa expresión tiene que estar en un solo lugar, no repartida por el código.
 
 ---
 
+## 008 — Todo el código del backend en español
+
+**Fecha:** 2026-10-01 · **Estado:** aceptada
+
+Clases, propiedades, métodos, parámetros, variables, tablas y columnas se
+escriben en español. Se conservan en inglés solo los nombres que impone el
+framework (`Middleware`, `DbContext`, `SaveChangesAsync`, `InvokeAsync`,
+`IEntityTypeConfiguration`, `Program.cs`).
+
+Los proyectos pasan a llamarse `Tienda.Dominio`, `Tienda.Aplicacion`,
+`Tienda.Infraestructura` y `Tienda.Api`; las pruebas, `Tienda.Dominio.Pruebas`.
+Esta decisión **reemplaza los nombres** de las entradas 002, 003, 005, 006 y 007;
+la lógica de esas decisiones no cambia.
+
+| Antes | Ahora |
+|---|---|
+| `Product`, `ProductVariant` | `Producto`, `VarianteProducto` |
+| `StockLevel`, `StockMovement` | `NivelExistencias`, `MovimientoExistencias` |
+| tablas `stock_levels`, `stock_movements` | `niveles_existencias`, `movimientos_existencias` |
+| `Product.RetailPrice` / `WholesalePrice` | `Producto.PrecioVenta` / `PrecioMayorista` |
+| `ProductVariant.RetailPriceOverride` | `VarianteProducto.PrecioVentaAlternativo` |
+| `MapInventoryEndpoints`, `MapCatalogEndpoints` | `MapearRutasInventario`, `MapearRutasCatalogo` |
+| `TipoMovimiento.Return` / `Removal` | `Devolucion` / `Merma` |
+
+**Regla práctica:** la carpeta y el namespace coinciden siempre
+(`Tienda.Aplicacion.Catalogo.Datos` vive en `Catalogo/Datos/`), y el nombre del
+archivo es el de la clase que contiene.
+
+**Consecuencia:** las rutas y los campos JSON de la API también quedan en
+español (`/api/catalogo/productos`, `NombreCategoria`, `EstaDisponible`). El
+frontend debe consumirlos con esos nombres.
+
+---
+
+## 009 — Se reinicia el historial de migraciones
+
+**Fecha:** 2026-10-01 · **Estado:** aceptada
+
+Mientras la base solo existe en desarrollo, no hay datos que conservar. El
+renombrado a español se había intentado como una migración aparte
+(`RenombrarEsquemaEspanol`), pero convivía con la migración inicial en inglés y
+con duplicados. Se descartan todas y se genera una sola, `CreacionInicial`, que
+ya crea el esquema en español.
+
+**Consecuencia:** hay que borrar la base local una vez
+(`dotnet ef database drop`) y generar la migración. **Desde que exista una base
+con datos reales, este atajo deja de valer:** el esquema solo cambia con
+migraciones nuevas, nunca regenerando la inicial.
+
+---
+
+## 010 — Puntos del contrato entre frontend y backend
+
+**Fecha:** 2026-10-01 · **Estado:** aceptada · color hex, stock inicial y `Referencia` ya aplicados; concurrencia y endpoints, pendientes
+
+Al contrastar el prototipo del frontend con el backend aparecieron desajustes.
+Se resuelven así:
+
+- **Color con hex.** La variante guarda el nombre del color **y su código hex**
+  (`ColorHex`, `#RRGGBB`, validado en el servicio), porque la vista pública dibuja muestras de color.
+- **Stock inicial al crear producto.** `SolicitudCrearProducto` acepta
+  `CantidadInicial` por variante (por defecto 0); si es mayor que cero, se registra un movimiento
+  de `Entrada` hacia depósito en la misma transacción. Así el stock nunca nace sin
+  historial (decisión 006).
+- **`Referencia` fuera de la vista pública.** El DTO público no la expone, y el
+  frontend dejó de mostrar "Ref." al cliente. Es dato interno.
+- **Concurrencia en existencias.** `NivelExistencias` necesita un token de
+  concurrencia para evitar pérdidas de actualización cuando dos ventas tocan la
+  misma variante.
+
+**Endpoints que el frontend ya asume y aún no existen:** lista de surtido
+pendiente, historial global de movimientos, resumen del panel, detalle y edición
+de producto, usuarios/autenticación, umbral de stock bajo.
+
+---
+
 ## Pendientes de decisión
 
 | Tema | Bloquea a |
 |---|---|
 | Mecanismo de autenticación (ASP.NET Identity vs. JWT propio) | Back-office, pantalla de vendedores |
 | Modalidad de promociones (precio promocional, % de descuento, por categoría) | MVP 3 |
-| Profundidad de la jerarquía de categorías | Navegación del catálogo |
+| Profundidad de la jerarquía de categorías (el filtro del catálogo hoy no incluye subcategorías) | Navegación del catálogo |
 | Búsqueda: `ILIKE` simple vs. full-text de PostgreSQL | Rendimiento del catálogo |
 | Almacenamiento de imágenes (disco local vs. S3 o equivalente) | Registro de productos |
+| Umbral de "stock bajo": global o por producto | Panel y alertas |
+| Moneda de la tienda (hoy el front asume USD, centralizado en `money.ts`) | Precios en el catálogo |

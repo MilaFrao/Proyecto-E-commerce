@@ -1,3 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <!-- Capa mas interna: no referencia ningun otro proyecto ni paquete de infraestructura. -->
-</Project>

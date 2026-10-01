@@ -355,4 +355,3 @@ El MVP deberá establecer, además, una separación clara entre la información 
 El segundo MVP comprenderá el desarrollo del catálogo público de productos, incluyendo su navegación, búsqueda, categorización, filtrado, ordenamiento y consulta detallada.
 También comprenderá la integración con la información gestionada por el MVP 1 para determinar qué productos y variantes pueden ser mostrados al cliente.
 Quedarán fuera del alcance principal de esta etapa las funcionalidades completas de comercio electrónico, tales como el carrito de compras, generación de pedidos, pagos, delivery, cupones y demás procesos asociados a la compra, los cuales serán considerados en el siguiente incremento funcional del sistema.
-

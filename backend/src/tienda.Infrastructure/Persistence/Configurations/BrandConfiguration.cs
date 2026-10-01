@@ -1,16 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Tienda.Domain.Catalog;
+using Tienda.Dominio.Catalogo;
 
-namespace Tienda.Infrastructure.Persistence.Configurations;
+namespace Tienda.Infraestructura.Persistencia.Configuraciones;
 
-public class BrandConfiguration : IEntityTypeConfiguration<Brand>
+public class ConfiguracionMarca : IEntityTypeConfiguration<Marca>
 {
-    public void Configure(EntityTypeBuilder<Brand> b)
+    public void Configure(EntityTypeBuilder<Marca> b)
     {
-        b.ToTable("brands");
-        b.HasKey(x => x.Id);
-        b.Property(x => x.Name).HasMaxLength(120).IsRequired();
-        b.HasIndex(x => x.Name).IsUnique();
+        b.ToTable("marcas");
+        b.HasKey(x => x.Identificador);
+        b.Property(x => x.Nombre).HasMaxLength(120).IsRequired();
+        b.HasIndex(x => x.Nombre).IsUnique();
     }
 }

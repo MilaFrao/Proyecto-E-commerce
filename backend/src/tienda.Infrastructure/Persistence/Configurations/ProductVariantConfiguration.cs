@@ -1,26 +1,26 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Tienda.Domain.Catalog;
+using Tienda.Dominio.Catalogo;
 
-namespace Tienda.Infrastructure.Persistence.Configurations;
+namespace Tienda.Infraestructura.Persistencia.Configuraciones;
 
-public class ProductVariantConfiguration : IEntityTypeConfiguration<ProductVariant>
+public class ConfiguracionVarianteProducto : IEntityTypeConfiguration<VarianteProducto>
 {
-    public void Configure(EntityTypeBuilder<ProductVariant> b)
+    public void Configure(EntityTypeBuilder<VarianteProducto> b)
     {
-        b.ToTable("product_variants");
-        b.HasKey(v => v.Id);
+        b.ToTable("variantes_producto");
+        b.HasKey(v => v.Identificador);
 
-        b.Property(v => v.Sku).HasMaxLength(80).IsRequired();
-        b.HasIndex(v => v.Sku).IsUnique();
+        b.Property(v => v.CodigoSku).HasMaxLength(80).IsRequired();
+        b.HasIndex(v => v.CodigoSku).IsUnique();
 
         b.Property(v => v.Color).HasMaxLength(60).IsRequired();
-        b.Property(v => v.Size).HasMaxLength(30).IsRequired();
+        b.Property(v => v.Talla).HasMaxLength(30).IsRequired();
 
-        b.Property(v => v.RetailPriceOverride).HasPrecision(18, 2);
-        b.Property(v => v.WholesalePriceOverride).HasPrecision(18, 2);
+        b.Property(v => v.PrecioVentaAlternativo).HasPrecision(18, 2);
+        b.Property(v => v.PrecioMayoristaAlternativo).HasPrecision(18, 2);
 
         // Una sola combinacion color+talla por producto.
-        b.HasIndex(v => new { v.ProductId, v.Color, v.Size }).IsUnique();
+        b.HasIndex(v => new { v.ProductoId, v.Color, v.Talla }).IsUnique();
     }
 }

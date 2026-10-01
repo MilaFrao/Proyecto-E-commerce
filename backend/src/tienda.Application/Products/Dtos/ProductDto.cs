@@ -1,15 +1,15 @@
-using Tienda.Domain.Enums;
+using Tienda.Dominio.Enumeraciones;
 
-namespace Tienda.Application.Products.Dtos;
+namespace Tienda.Aplicacion.Productos.Dtos;
 
-public record ProductDto(
-    Guid Id,
-    string Name,
-    string Reference,
-    string? Description,
-    string CategoryName,
-    string? BrandName,
-    decimal RetailPrice,
-    decimal WholesalePrice,
-    ProductStatus Status,
-    int VariantCount);
+public record ProductoDto(
+    Guid Identificador,
+    string Nombre,
+    string Referencia,
+    string? Descripcion,
+    string NombreCategoria,
+    string? NombreMarca,
+    decimal PrecioVenta,
+    decimal PrecioMayorista,
+    EstadoProducto Estado,
+    int CantidadVariantes);

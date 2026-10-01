@@ -1,8 +1,8 @@
-namespace Tienda.Domain.Enums;
+namespace Tienda.Dominio.Enumeraciones;
 
 /// <summary>Los productos no se borran: se desactivan, para conservar el historial.</summary>
-public enum ProductStatus
+public enum EstadoProducto
 {
-    Active   = 1,
-    Inactive = 2
+    Activo   = 1,
+    Inactivo = 2
 }

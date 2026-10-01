@@ -1,16 +1,16 @@
-namespace Tienda.Application.Inventory.Dtos;
+namespace Tienda.Aplicacion.Inventario.Dtos;
 
 /// <summary>Una variante con su producto y sus tres numeros de stock. Alimenta la pantalla de inventario.</summary>
-public record VariantStockDto(
-    Guid VariantId,
-    string ProductName,
-    string Reference,
-    string Sku,
+public record ExistenciasVarianteDto(
+    Guid VarianteId,
+    string NombreProducto,
+    string Referencia,
+    string CodigoSku,
     string Color,
-    string Size,
-    int WarehouseQuantity,
-    int StoreQuantity)
+    string Talla,
+    int CantidadDeposito,
+    int CantidadTienda)
 {
-    public int AvailableForSale => StoreQuantity;
-    public int TotalQuantity => WarehouseQuantity + StoreQuantity;
+    public int DisponibleParaVenta => CantidadTienda;
+    public int CantidadTotal => CantidadDeposito + CantidadTienda;
 }

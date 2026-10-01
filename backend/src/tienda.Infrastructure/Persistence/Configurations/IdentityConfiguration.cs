@@ -1,40 +1,40 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Tienda.Domain.Identity;
+using Tienda.Dominio.Identidad;
 
-namespace Tienda.Infrastructure.Persistence.Configurations;
+namespace Tienda.Infraestructura.Persistencia.Configuraciones;
 
-public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
+public class ConfiguracionUsuarioAplicacion : IEntityTypeConfiguration<UsuarioAplicacion>
 {
-    public void Configure(EntityTypeBuilder<AppUser> b)
+    public void Configure(EntityTypeBuilder<UsuarioAplicacion> b)
     {
-        b.ToTable("users");
-        b.HasKey(u => u.Id);
-        b.Property(u => u.Email).HasMaxLength(200).IsRequired();
-        b.HasIndex(u => u.Email).IsUnique();
-        b.Property(u => u.FullName).HasMaxLength(200).IsRequired();
+        b.ToTable("usuarios");
+        b.HasKey(u => u.Identificador);
+        b.Property(u => u.CorreoElectronico).HasMaxLength(200).IsRequired();
+        b.HasIndex(u => u.CorreoElectronico).IsUnique();
+        b.Property(u => u.NombreCompleto).HasMaxLength(200).IsRequired();
     }
 }
 
-public class AppRoleConfiguration : IEntityTypeConfiguration<AppRole>
+public class ConfiguracionRolAplicacion : IEntityTypeConfiguration<RolAplicacion>
 {
-    public void Configure(EntityTypeBuilder<AppRole> b)
+    public void Configure(EntityTypeBuilder<RolAplicacion> b)
     {
         b.ToTable("roles");
-        b.HasKey(r => r.Id);
-        b.Property(r => r.Name).HasMaxLength(60).IsRequired();
-        b.HasIndex(r => r.Name).IsUnique();
+        b.HasKey(r => r.Identificador);
+        b.Property(r => r.Nombre).HasMaxLength(60).IsRequired();
+        b.HasIndex(r => r.Nombre).IsUnique();
     }
 }
 
-public class AppUserRoleConfiguration : IEntityTypeConfiguration<AppUserRole>
+public class ConfiguracionRolUsuario : IEntityTypeConfiguration<RolUsuarioAplicacion>
 {
-    public void Configure(EntityTypeBuilder<AppUserRole> b)
+    public void Configure(EntityTypeBuilder<RolUsuarioAplicacion> b)
     {
-        b.ToTable("user_roles");
-        b.HasKey(ur => new { ur.UserId, ur.RoleId });
+        b.ToTable("usuarios_roles");
+        b.HasKey(ur => new { ur.UsuarioId, ur.RolId });
 
-        b.HasOne(ur => ur.User).WithMany(u => u.Roles).HasForeignKey(ur => ur.UserId);
-        b.HasOne(ur => ur.Role).WithMany(r => r.Users).HasForeignKey(ur => ur.RoleId);
+        b.HasOne(ur => ur.Usuario).WithMany(u => u.Roles).HasForeignKey(ur => ur.UsuarioId);
+        b.HasOne(ur => ur.Rol).WithMany(r => r.Usuarios).HasForeignKey(ur => ur.RolId);
     }
 }

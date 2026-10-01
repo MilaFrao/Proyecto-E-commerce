@@ -1,31 +1,31 @@
-using Tienda.Domain.Common;
-using Tienda.Domain.Enums;
+using Tienda.Dominio.Comun;
+using Tienda.Dominio.Enumeraciones;
 
-namespace Tienda.Domain.Catalog;
+namespace Tienda.Dominio.Catalogo;
 
 /// <summary>
 /// Producto general. NO tiene stock propio: el stock vive en cada variante.
 /// Los precios base viven aqui y cada variante puede sobreescribirlos si hace falta.
 /// </summary>
-public class Product : BaseEntity
+public class Producto : EntidadBase
 {
-    public string Name { get; set; } = string.Empty;
-    public string Reference { get; set; } = string.Empty; // codigo interno, unico
-    public string? Description { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string Referencia { get; set; } = string.Empty; // codigo interno, unico
+    public string? Descripcion { get; set; }
 
-    public Guid CategoryId { get; set; }
-    public Category? Category { get; set; }
+    public Guid CategoriaId { get; set; }
+    public Categoria? Categoria { get; set; }
 
-    public Guid? BrandId { get; set; }
-    public Brand? Brand { get; set; }
+    public Guid? MarcaId { get; set; }
+    public Marca? Marca { get; set; }
 
-    public decimal RetailPrice { get; set; }
-    public decimal WholesalePrice { get; set; }
+    public decimal PrecioVenta { get; set; }
+    public decimal PrecioMayorista { get; set; }
 
-    public ProductStatus Status { get; set; } = ProductStatus.Active;
-    public DateTime? DeactivatedAt { get; set; }
-    public string? DeactivationReason { get; set; }
+    public EstadoProducto Estado { get; set; } = EstadoProducto.Activo;
+    public DateTime? DesactivadoEn { get; set; }
+    public string? MotivoDesactivacion { get; set; }
 
-    public ICollection<ProductVariant> Variants { get; set; } = new List<ProductVariant>();
-    public ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+    public ICollection<VarianteProducto> Variantes { get; set; } = new List<VarianteProducto>();
+    public ICollection<ImagenProducto> Imagenes { get; set; } = new List<ImagenProducto>();
 }

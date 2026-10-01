@@ -30,12 +30,12 @@ tienda-app/
 │   ├── Tienda.sln
 │   ├── Directory.Build.props        ← versión de .NET, en un solo lugar
 │   ├── src/
-│   │   ├── Tienda.Domain/           entidades y reglas de negocio puras
-│   │   ├── Tienda.Application/      casos de uso, DTOs, interfaces
-│   │   ├── Tienda.Infrastructure/   EF Core, PostgreSQL, servicios externos
+│   │   ├── Tienda.Dominio/          entidades y reglas de negocio puras
+│   │   ├── Tienda.Aplicacion/       casos de uso, DTOs, interfaces
+│   │   ├── Tienda.Infraestructura/  EF Core, PostgreSQL, servicios externos
 │   │   └── Tienda.Api/              endpoints HTTP
 │   └── tests/
-│       └── Tienda.Domain.Tests/
+│       └── Tienda.Dominio.Pruebas/
 ├── frontend/
 │   └── src/
 │       ├── app/                     router, layouts, providers
@@ -48,11 +48,19 @@ tienda-app/
 ### La regla de las dependencias
 
 ```
-Api  →  Infrastructure  →  Application  →  Domain
+Api  →  Infraestructura  →  Aplicacion  →  Dominio
 ```
 
 Las flechas apuntan **hacia adentro**, nunca al revés. Si aparece un
-`using Tienda.Infrastructure` dentro de `Tienda.Domain`, algo se torció.
+`using Tienda.Infraestructura` dentro de `Tienda.Dominio`, algo se torció.
+
+### Convención de nombres
+
+Todo el código del backend está en español: clases, propiedades, métodos,
+parámetros, variables, tablas y columnas. Se conservan en inglés solo los
+términos del propio framework (`Controller`, `Middleware`, `DbContext`,
+`SaveChangesAsync`, `InvokeAsync`, `IEntityTypeConfiguration`...). Detalle en
+la decisión 008 de [`docs/decisiones.md`](docs/decisiones.md).
 
 ---
 
@@ -76,9 +84,12 @@ cd backend
 dotnet restore
 dotnet tool install --global dotnet-ef        # una sola vez
 
-# Primera migración
-dotnet ef migrations add InitialCreate -p src/Tienda.Infrastructure -s src/Tienda.Api
-dotnet ef database update -p src/Tienda.Infrastructure -s src/Tienda.Api
+# Crear la migración inicial (el esquema ya sale en español)
+dotnet ef migrations add CreacionInicial -p src/Tienda.Infraestructura -s src/Tienda.Api --output-dir Migraciones
+
+# En desarrollo la API aplica las migraciones sola al arrancar.
+# Si prefieres hacerlo a mano:
+dotnet ef database update -p src/Tienda.Infraestructura -s src/Tienda.Api
 
 dotnet run --project src/Tienda.Api
 ```
@@ -104,28 +115,55 @@ que pelear con CORS en desarrollo.
 
 ## Endpoints implementados
 
+Las respuestas viajan con nombres en español y los enums como texto
+(`"Entrada"`, `"Traslado"`, `"Venta"`, `"Devolucion"`, `"Ajuste"`, `"Merma"`).
+
+### Sistema
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/salud` | Comprobación de que la API está viva |
+
+### Productos — MVP 1 (interno)
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/api/productos` | Listado con búsqueda y paginación (`busqueda`, `incluirInactivos`, `pagina`, `elementosPorPagina`) |
+| `POST` | `/api/productos` | Crea el producto con todas sus variantes |
+| `POST` | `/api/productos/{identificador}/desactivar` | Desactiva (no se borra) |
+| `POST` | `/api/productos/{identificador}/activar` | Reactiva |
+
 ### Inventario — MVP 1 (interno)
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| `GET` | `/api/inventory/variants/{id}/stock` | Depósito, tienda y disponible para venta |
-| `GET` | `/api/inventory/variants/{id}/movements` | Historial de movimientos |
-| `POST` | `/api/inventory/variants/{id}/entries` | Entrada de mercancía al depósito |
-| `POST` | `/api/inventory/variants/{id}/supply` | Surtido: depósito → tienda |
-| `POST` | `/api/inventory/variants/{id}/sales` | Venta (descuenta de tienda) |
+| `GET` | `/api/inventario/variantes?busqueda=` | Busca variantes con su stock (máx. 50) |
+| `GET` | `/api/inventario/variantes/{varianteId}/existencias` | Depósito, tienda y disponible para venta |
+| `GET` | `/api/inventario/variantes/{varianteId}/movimientos` | Historial de movimientos |
+| `POST` | `/api/inventario/variantes/{varianteId}/entradas` | Entrada de mercancía al depósito |
+| `POST` | `/api/inventario/variantes/{varianteId}/surtido` | Surtido: depósito → tienda |
+| `POST` | `/api/inventario/variantes/{varianteId}/ventas` | Venta (descuenta de tienda) |
+
+### Listas compartidas
+
+| Método | Ruta | Qué hace |
+|---|---|---|
+| `GET` | `/api/listas/categorias` · `/api/listas/marcas` | Para los desplegables |
+| `POST` | `/api/listas/categorias` · `/api/listas/marcas` | Crear una nueva |
 
 ### Catálogo — MVP 2 (público, sin autenticación)
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| `GET` | `/api/catalog/products` | Lista con búsqueda, filtros, orden y paginación |
-| `GET` | `/api/catalog/products/{id}` | Ficha del producto con sus variantes |
+| `GET` | `/api/catalogo/productos` | Búsqueda, filtros, orden (`nombre`, `precio_ascendente`, `precio_descendente`, `recientes`) y paginación |
+| `GET` | `/api/catalogo/productos/{identificador}` | Ficha del producto con sus variantes |
+| `GET` | `/api/catalogo/filtros` | Categorías, marcas, colores y tallas que hoy se pueden comprar |
 
 ---
 
 ## Lo que todavía falta
 
-- Endpoints de administración de productos (crear, editar, desactivar)
+- Editar producto y ver su detalle interno (crear y desactivar ya existen)
 - Módulo de autenticación y roles — la estructura está lista, falta decidir entre
   ASP.NET Identity y JWT propio
 - Pantalla de vendedores (consulta rápida por código de barras)

@@ -2,12 +2,12 @@ using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace Tienda.Application.Common;
+namespace Tienda.Aplicacion.Comun;
 
-public static class Slug
+public static class GeneradorSegmentosUrl
 {
     /// <summary>"Ropa Interior" -> "ropa-interior". Quita tildes y simbolos.</summary>
-    public static string From(string text)
+    public static string Generar(string text)
     {
         var normalized = text.Trim().ToLowerInvariant().Normalize(NormalizationForm.FormD);
         var sb = new StringBuilder();

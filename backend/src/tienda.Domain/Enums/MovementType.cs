@@ -1,11 +1,11 @@
-namespace Tienda.Domain.Enums;
+namespace Tienda.Dominio.Enumeraciones;
 
-public enum MovementType
+public enum TipoMovimiento
 {
-    Entry      = 1, // Entrada de mercancia al deposito
-    Transfer   = 2, // Surtido: deposito -> tienda
-    Sale       = 3, // Venta desde tienda
+    Entrada      = 1, // Entrada de mercancia al deposito
+    Traslado   = 2, // Surtido: deposito -> tienda
+    Venta       = 3, // Venta desde tienda
     Return     = 4, // Devolucion del cliente
-    Adjustment = 5, // Ajuste por inventario fisico
+    Ajuste = 5, // Ajuste por inventario fisico
     Removal    = 6  // Merma, dano, perdida
 }

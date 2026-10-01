@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Tienda.Infraestructura.Persistencia;
@@ -11,9 +12,11 @@ using Tienda.Infraestructura.Persistencia;
 namespace Tienda.Infraestructura.Migrations
 {
     [DbContext(typeof(ContextoBaseDatos))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261001164338_RenombrarEsquemaEspanol")]
+    partial class RenombrarEsquemaEspanol
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

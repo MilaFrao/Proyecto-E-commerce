@@ -1,7 +1,7 @@
-namespace Tienda.Domain.Common;
+namespace Tienda.Dominio.Comun;
 
 /// <summary>Violacion de una regla de negocio. La captura el middleware de la Api y la traduce a 400.</summary>
-public sealed class DomainException : Exception
+public sealed class ExcepcionDominio : Exception
 {
-    public DomainException(string message) : base(message) { }
+    public ExcepcionDominio(string message) : base(message) { }
 }

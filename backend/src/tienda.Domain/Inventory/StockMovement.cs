@@ -1,32 +1,32 @@
-using Tienda.Domain.Catalog;
-using Tienda.Domain.Common;
-using Tienda.Domain.Enums;
+using Tienda.Dominio.Catalogo;
+using Tienda.Dominio.Comun;
+using Tienda.Dominio.Enumeraciones;
 
-namespace Tienda.Domain.Inventory;
+namespace Tienda.Dominio.Inventario;
 
 /// <summary>
 /// Asiento inmutable del historial de inventario. Nunca se edita ni se borra:
 /// si algo salio mal, se registra un movimiento de ajuste que lo compense.
 /// </summary>
-public class StockMovement : BaseEntity
+public class MovimientoExistencias : EntidadBase
 {
-    public Guid ProductVariantId { get; set; }
-    public ProductVariant? ProductVariant { get; set; }
+    public Guid VarianteProductoId { get; set; }
+    public VarianteProducto? Variante { get; set; }
 
-    public MovementType Type { get; set; }
+    public TipoMovimiento Tipo { get; set; }
 
     /// <summary>Positivo o negativo segun el tipo. En un traslado se registra el monto movido.</summary>
-    public int Quantity { get; set; }
+    public int Cantidad { get; set; }
 
-    public StockLocation? FromLocation { get; set; }
-    public StockLocation? ToLocation { get; set; }
+    public UbicacionStock? UbicacionOrigen { get; set; }
+    public UbicacionStock? UbicacionDestino { get; set; }
 
     /// <summary>Foto del stock despues del movimiento, para auditar sin recalcular toda la cadena.</summary>
-    public int ResultingWarehouseQuantity { get; set; }
-    public int ResultingStoreQuantity { get; set; }
+    public int CantidadResultanteDeposito { get; set; }
+    public int CantidadResultanteTienda { get; set; }
 
-    public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
-    public Guid? PerformedByUserId { get; set; }
-    public string? Reference { get; set; }
-    public string? Notes { get; set; }
+    public DateTime OcurridoEn { get; set; } = DateTime.UtcNow;
+    public Guid? RealizadoPorUsuarioId { get; set; }
+    public string? Referencia { get; set; }
+    public string? Notas { get; set; }
 }

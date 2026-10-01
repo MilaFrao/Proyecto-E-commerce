@@ -1,28 +1,28 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Tienda.Domain.Catalog;
-using Tienda.Domain.Inventory;
+using Tienda.Dominio.Catalogo;
+using Tienda.Dominio.Inventario;
 
-namespace Tienda.Infrastructure.Persistence.Configurations;
+namespace Tienda.Infraestructura.Persistencia.Configuraciones;
 
-public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement>
+public class ConfiguracionMovimientoExistencias : IEntityTypeConfiguration<MovimientoExistencias>
 {
-    public void Configure(EntityTypeBuilder<StockMovement> b)
+    public void Configure(EntityTypeBuilder<MovimientoExistencias> b)
     {
-        b.ToTable("stock_movements");
-        b.HasKey(m => m.Id);
+        b.ToTable("movimientos_existencias");
+        b.HasKey(m => m.Identificador);
 
-        b.Property(m => m.Type).HasConversion<int>();
-        b.Property(m => m.FromLocation).HasConversion<int?>();
-        b.Property(m => m.ToLocation).HasConversion<int?>();
-        b.Property(m => m.Reference).HasMaxLength(120);
-        b.Property(m => m.Notes).HasMaxLength(500);
+        b.Property(m => m.Tipo).HasConversion<int>();
+        b.Property(m => m.UbicacionOrigen).HasConversion<int?>();
+        b.Property(m => m.UbicacionDestino).HasConversion<int?>();
+        b.Property(m => m.Referencia).HasMaxLength(120);
+        b.Property(m => m.Notas).HasMaxLength(500);
 
-        b.HasOne(m => m.ProductVariant)
-            .WithMany(v => v.Movements)
-            .HasForeignKey(m => m.ProductVariantId)
+        b.HasOne(m => m.Variante)
+            .WithMany(v => v.Movimientos)
+            .HasForeignKey(m => m.VarianteProductoId)
             .OnDelete(DeleteBehavior.Restrict); // el historial sobrevive a la variante
 
-        b.HasIndex(m => new { m.ProductVariantId, m.OccurredAt });
+        b.HasIndex(m => new { m.VarianteProductoId, m.OcurridoEn });
     }
 }

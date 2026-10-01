@@ -1,27 +1,27 @@
-using Tienda.Domain.Common;
-using Tienda.Domain.Inventory;
+using Tienda.Dominio.Comun;
+using Tienda.Dominio.Inventario;
 
-namespace Tienda.Domain.Catalog;
+namespace Tienda.Dominio.Catalogo;
 
 /// <summary>
 /// Combinacion concreta color + talla. Es la unidad real de inventario:
 /// todo el stock y todos los movimientos cuelgan de aqui, nunca del Product.
 /// </summary>
-public class ProductVariant : BaseEntity
+public class VarianteProducto : EntidadBase
 {
-    public Guid ProductId { get; set; }
-    public Product? Product { get; set; }
+    public Guid ProductoId { get; set; }
+    public Producto? Producto { get; set; }
 
-    public string Sku { get; set; } = string.Empty; // unico, para codigo de barras
+    public string CodigoSku { get; set; } = string.Empty; // unico, para codigo de barras
     public string Color { get; set; } = string.Empty;
-    public string Size { get; set; } = string.Empty;
+    public string Talla { get; set; } = string.Empty;
 
     /// <summary>Si es null, hereda el precio del producto.</summary>
-    public decimal? RetailPriceOverride { get; set; }
-    public decimal? WholesalePriceOverride { get; set; }
+    public decimal? PrecioVentaAlternativo { get; set; }
+    public decimal? PrecioMayoristaAlternativo { get; set; }
 
-    public bool IsActive { get; set; } = true;
+    public bool EstaActiva { get; set; } = true;
 
-    public ICollection<StockLevel> StockLevels { get; set; } = new List<StockLevel>();
-    public ICollection<StockMovement> Movements { get; set; } = new List<StockMovement>();
+    public ICollection<NivelExistencias> NivelesExistencias { get; set; } = new List<NivelExistencias>();
+    public ICollection<MovimientoExistencias> Movimientos { get; set; } = new List<MovimientoExistencias>();
 }

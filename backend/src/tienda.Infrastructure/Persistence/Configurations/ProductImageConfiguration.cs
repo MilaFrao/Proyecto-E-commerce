@@ -1,16 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Tienda.Domain.Catalog;
+using Tienda.Dominio.Catalogo;
 
-namespace Tienda.Infrastructure.Persistence.Configurations;
+namespace Tienda.Infraestructura.Persistencia.Configuraciones;
 
-public class ProductImageConfiguration : IEntityTypeConfiguration<ProductImage>
+public class ConfiguracionImagenProducto : IEntityTypeConfiguration<ImagenProducto>
 {
-    public void Configure(EntityTypeBuilder<ProductImage> b)
+    public void Configure(EntityTypeBuilder<ImagenProducto> b)
     {
-        b.ToTable("product_images");
-        b.HasKey(i => i.Id);
-        b.Property(i => i.Url).HasMaxLength(500).IsRequired();
-        b.Property(i => i.AltText).HasMaxLength(200);
+        b.ToTable("imagenes_producto");
+        b.HasKey(i => i.Identificador);
+        b.Property(i => i.DireccionUrl).HasMaxLength(500).IsRequired();
+        b.Property(i => i.TextoAlternativo).HasMaxLength(200);
     }
 }

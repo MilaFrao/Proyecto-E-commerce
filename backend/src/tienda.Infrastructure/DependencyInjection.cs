@@ -1,24 +1,24 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Tienda.Application.Abstractions;
-using Tienda.Infrastructure.Persistence;
-using Tienda.Infrastructure.Services;
+using Tienda.Aplicacion.Abstracciones;
+using Tienda.Infraestructura.Persistencia;
+using Tienda.Infraestructura.Servicios;
 
-namespace Tienda.Infrastructure;
+namespace Tienda.Infraestructura;
 
-public static class DependencyInjection
+public static class InyeccionDependencias
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
+    public static IServiceCollection AgregarInfraestructura(this IServiceCollection services, IConfiguration config)
     {
         var connectionString = config.GetConnectionString("Default")
             ?? throw new InvalidOperationException("Falta la cadena de conexion 'Default'.");
 
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseNpgsql(connectionString, npg => npg.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName)));
+        services.AddDbContext<ContextoBaseDatos>(options =>
+            options.UseNpgsql(connectionString, npg => npg.MigrationsAssembly(typeof(ContextoBaseDatos).Assembly.FullName)));
 
-        services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
-        services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
+        services.AddScoped<IContextoBaseDatos>(sp => sp.GetRequiredService<ContextoBaseDatos>());
+        services.AddSingleton<IProveedorFechaHora, ProveedorFechaHora>();
 
         return services;
     }

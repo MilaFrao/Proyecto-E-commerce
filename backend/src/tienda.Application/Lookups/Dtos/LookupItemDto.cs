@@ -1,4 +1,4 @@
-namespace Tienda.Application.Lookups.Dtos;
+namespace Tienda.Aplicacion.Listas.Dtos;
 
 /// <summary>Elemento de una lista desplegable (categoria o marca).</summary>
-public record LookupItemDto(Guid Id, string Name, Guid? ParentId);
+public record ElementoListaDto(Guid Identificador, string Nombre, Guid? IdentificadorPadre);

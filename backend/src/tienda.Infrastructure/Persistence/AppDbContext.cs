@@ -1,28 +1,28 @@
 using Microsoft.EntityFrameworkCore;
-using Tienda.Application.Abstractions;
-using Tienda.Domain.Catalog;
-using Tienda.Domain.Identity;
-using Tienda.Domain.Inventory;
+using Tienda.Aplicacion.Abstracciones;
+using Tienda.Dominio.Catalogo;
+using Tienda.Dominio.Identidad;
+using Tienda.Dominio.Inventario;
 
-namespace Tienda.Infrastructure.Persistence;
+namespace Tienda.Infraestructura.Persistencia;
 
-public class AppDbContext : DbContext, IAppDbContext
+public class ContextoBaseDatos : DbContext, IContextoBaseDatos
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    public ContextoBaseDatos(DbContextOptions<ContextoBaseDatos> options) : base(options) { }
 
-    public DbSet<Product> Products => Set<Product>();
-    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
-    public DbSet<ProductImage> ProductImages => Set<ProductImage>();
-    public DbSet<Category> Categories => Set<Category>();
-    public DbSet<Brand> Brands => Set<Brand>();
-    public DbSet<StockLevel> StockLevels => Set<StockLevel>();
-    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
-    public DbSet<AppUser> Users => Set<AppUser>();
-    public DbSet<AppRole> Roles => Set<AppRole>();
+    public DbSet<Producto> Productos => Set<Producto>();
+    public DbSet<VarianteProducto> VariantesProducto => Set<VarianteProducto>();
+    public DbSet<ImagenProducto> ImagenesProducto => Set<ImagenProducto>();
+    public DbSet<Categoria> Categorias => Set<Categoria>();
+    public DbSet<Marca> Marcas => Set<Marca>();
+    public DbSet<NivelExistencias> NivelesExistencias => Set<NivelExistencias>();
+    public DbSet<MovimientoExistencias> MovimientosExistencias => Set<MovimientoExistencias>();
+    public DbSet<UsuarioAplicacion> Usuarios => Set<UsuarioAplicacion>();
+    public DbSet<RolAplicacion> Roles => Set<RolAplicacion>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        builder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        builder.ApplyConfigurationsFromAssembly(typeof(ContextoBaseDatos).Assembly);
         base.OnModelCreating(builder);
     }
 }

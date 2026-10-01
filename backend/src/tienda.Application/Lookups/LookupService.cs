@@ -1,67 +1,67 @@
 using Microsoft.EntityFrameworkCore;
-using Tienda.Application.Abstractions;
-using Tienda.Application.Common;
-using Tienda.Application.Lookups.Dtos;
-using Tienda.Domain.Catalog;
+using Tienda.Aplicacion.Abstracciones;
+using Tienda.Aplicacion.Comun;
+using Tienda.Aplicacion.Listas.Dtos;
+using Tienda.Dominio.Catalogo;
 
-namespace Tienda.Application.Lookups;
+namespace Tienda.Aplicacion.Listas;
 
-public class LookupService : ILookupService
+public class ServicioListas : IServicioListas
 {
-    private readonly IAppDbContext _db;
+    private readonly IContextoBaseDatos _db;
 
-    public LookupService(IAppDbContext db) => _db = db;
+    public ServicioListas(IContextoBaseDatos db) => _db = db;
 
-    public async Task<IReadOnlyList<LookupItemDto>> GetCategoriesAsync(CancellationToken ct = default)
-        => await _db.Categories
+    public async Task<IReadOnlyList<ElementoListaDto>> ObtenerCategoriasAsync(CancellationToken tokenCancelacion = default)
+        => await _db.Categorias
             .AsNoTracking()
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
-            .Select(c => new LookupItemDto(c.Id, c.Name, c.ParentId))
-            .ToListAsync(ct);
+            .Where(c => c.EstaActiva)
+            .OrderBy(c => c.Orden).ThenBy(c => c.Nombre)
+            .Select(c => new ElementoListaDto(c.Identificador, c.Nombre, c.IdentificadorPadre))
+            .ToListAsync(tokenCancelacion);
 
-    public async Task<IReadOnlyList<LookupItemDto>> GetBrandsAsync(CancellationToken ct = default)
-        => await _db.Brands
+    public async Task<IReadOnlyList<ElementoListaDto>> ObtenerMarcasAsync(CancellationToken tokenCancelacion = default)
+        => await _db.Marcas
             .AsNoTracking()
-            .Where(b => b.IsActive)
-            .OrderBy(b => b.Name)
-            .Select(b => new LookupItemDto(b.Id, b.Name, null))
-            .ToListAsync(ct);
+            .Where(b => b.EstaActiva)
+            .OrderBy(b => b.Nombre)
+            .Select(b => new ElementoListaDto(b.Identificador, b.Nombre, null))
+            .ToListAsync(tokenCancelacion);
 
-    public async Task<Result<LookupItemDto>> CreateCategoryAsync(string name, Guid? parentId, CancellationToken ct = default)
+    public async Task<Resultado<ElementoListaDto>> CrearCategoriaAsync(string nombre, Guid? identificadorPadre, CancellationToken tokenCancelacion = default)
     {
-        name = (name ?? string.Empty).Trim();
-        if (name.Length == 0) return Result.Failure<LookupItemDto>("El nombre de la categoria es obligatorio.");
+        nombre = (nombre ?? string.Empty).Trim();
+        if (nombre.Length == 0) return Resultado.Fallo<ElementoListaDto>("El nombre de la categoria es obligatorio.");
 
-        if (parentId is not null && !await _db.Categories.AnyAsync(c => c.Id == parentId, ct))
-            return Result.Failure<LookupItemDto>("La categoria padre no existe.");
+        if (identificadorPadre is not null && !await _db.Categorias.AnyAsync(c => c.Identificador == identificadorPadre, tokenCancelacion))
+            return Resultado.Fallo<ElementoListaDto>("La categoria padre no existe.");
 
-        var baseSlug = Slug.From(name);
+        var baseSlug = GeneradorSegmentosUrl.Generar(nombre);
         var slug = baseSlug;
         var attempt = 2;
-        while (await _db.Categories.AnyAsync(c => c.Slug == slug, ct))
+        while (await _db.Categorias.AnyAsync(c => c.SegmentoUrl == slug, tokenCancelacion))
             slug = $"{baseSlug}-{attempt++}";
 
-        var category = new Category { Name = name, Slug = slug, ParentId = parentId };
-        _db.Categories.Add(category);
-        await _db.SaveChangesAsync(ct);
+        var category = new Categoria { Nombre = nombre, SegmentoUrl = slug, IdentificadorPadre = identificadorPadre };
+        _db.Categorias.Add(category);
+        await _db.SaveChangesAsync(tokenCancelacion);
 
-        return Result.Success(new LookupItemDto(category.Id, category.Name, category.ParentId));
+        return Resultado.Exito(new ElementoListaDto(category.Identificador, category.Nombre, category.IdentificadorPadre));
     }
 
-    public async Task<Result<LookupItemDto>> CreateBrandAsync(string name, CancellationToken ct = default)
+    public async Task<Resultado<ElementoListaDto>> CrearMarcaAsync(string nombre, CancellationToken tokenCancelacion = default)
     {
-        name = (name ?? string.Empty).Trim();
-        if (name.Length == 0) return Result.Failure<LookupItemDto>("El nombre de la marca es obligatorio.");
+        nombre = (nombre ?? string.Empty).Trim();
+        if (nombre.Length == 0) return Resultado.Fallo<ElementoListaDto>("El nombre de la marca es obligatorio.");
 
-        var lowered = name.ToLower();
-        if (await _db.Brands.AnyAsync(b => b.Name.ToLower() == lowered, ct))
-            return Result.Failure<LookupItemDto>("Esa marca ya existe.");
+        var lowered = nombre.ToLower();
+        if (await _db.Marcas.AnyAsync(b => b.Nombre.ToLower() == lowered, tokenCancelacion))
+            return Resultado.Fallo<ElementoListaDto>("Esa marca ya existe.");
 
-        var brand = new Brand { Name = name };
-        _db.Brands.Add(brand);
-        await _db.SaveChangesAsync(ct);
+        var brand = new Marca { Nombre = nombre };
+        _db.Marcas.Add(brand);
+        await _db.SaveChangesAsync(tokenCancelacion);
 
-        return Result.Success(new LookupItemDto(brand.Id, brand.Name, null));
+        return Resultado.Exito(new ElementoListaDto(brand.Identificador, brand.Nombre, null));
     }
 }

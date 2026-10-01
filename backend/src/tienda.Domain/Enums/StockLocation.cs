@@ -1,11 +1,11 @@
-namespace Tienda.Domain.Enums;
+namespace Tienda.Dominio.Enumeraciones;
 
 /// <summary>
 /// Ubicacion fisica de las unidades. La separacion deposito / tienda es la regla
 /// central del MVP 1: solo lo que esta en tienda cuenta como disponible para venta.
 /// </summary>
-public enum StockLocation
+public enum UbicacionStock
 {
-    Warehouse = 1, // Deposito: existe, pero NO se vende ni se publica
-    Store     = 2  // Surtido en tienda: disponible para la venta
+    Deposito = 1, // Deposito: existe, pero NO se vende ni se publica
+    Tienda     = 2  // Surtido en tienda: disponible para la venta
 }

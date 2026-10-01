@@ -1,15 +1,15 @@
-using Tienda.Domain.Enums;
+using Tienda.Dominio.Enumeraciones;
 
-namespace Tienda.Application.Inventory.Dtos;
+namespace Tienda.Aplicacion.Inventario.Dtos;
 
-public record StockMovementDto(
-    Guid Id,
-    Guid VariantId,
-    MovementType Type,
-    int Quantity,
-    StockLocation? FromLocation,
-    StockLocation? ToLocation,
-    int ResultingWarehouseQuantity,
-    int ResultingStoreQuantity,
-    DateTime OccurredAt,
-    string? Notes);
+public record MovimientoExistenciasDto(
+    Guid Identificador,
+    Guid VarianteId,
+    TipoMovimiento Tipo,
+    int Cantidad,
+    UbicacionStock? UbicacionOrigen,
+    UbicacionStock? UbicacionDestino,
+    int CantidadResultanteDeposito,
+    int CantidadResultanteTienda,
+    DateTime OcurridoEn,
+    string? Notas);

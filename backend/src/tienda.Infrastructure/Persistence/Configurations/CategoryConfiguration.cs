@@ -1,23 +1,23 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Tienda.Domain.Catalog;
+using Tienda.Dominio.Catalogo;
 
-namespace Tienda.Infrastructure.Persistence.Configurations;
+namespace Tienda.Infraestructura.Persistencia.Configuraciones;
 
-public class CategoryConfiguration : IEntityTypeConfiguration<Category>
+public class ConfiguracionCategoria : IEntityTypeConfiguration<Categoria>
 {
-    public void Configure(EntityTypeBuilder<Category> b)
+    public void Configure(EntityTypeBuilder<Categoria> b)
     {
-        b.ToTable("categories");
-        b.HasKey(c => c.Id);
+        b.ToTable("categorias");
+        b.HasKey(c => c.Identificador);
 
-        b.Property(c => c.Name).HasMaxLength(120).IsRequired();
-        b.Property(c => c.Slug).HasMaxLength(140).IsRequired();
-        b.HasIndex(c => c.Slug).IsUnique();
+        b.Property(c => c.Nombre).HasMaxLength(120).IsRequired();
+        b.Property(c => c.SegmentoUrl).HasMaxLength(140).IsRequired();
+        b.HasIndex(c => c.SegmentoUrl).IsUnique();
 
-        b.HasOne(c => c.Parent)
-            .WithMany(c => c.Children)
-            .HasForeignKey(c => c.ParentId)
+        b.HasOne(c => c.CategoriaPadre)
+            .WithMany(c => c.Subcategorias)
+            .HasForeignKey(c => c.IdentificadorPadre)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

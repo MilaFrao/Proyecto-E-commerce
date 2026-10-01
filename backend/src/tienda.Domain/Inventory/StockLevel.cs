@@ -1,8 +1,8 @@
-using Tienda.Domain.Catalog;
-using Tienda.Domain.Common;
-using Tienda.Domain.Enums;
+using Tienda.Dominio.Catalogo;
+using Tienda.Dominio.Comun;
+using Tienda.Dominio.Enumeraciones;
 
-namespace Tienda.Domain.Inventory;
+namespace Tienda.Dominio.Inventario;
 
 /// <summary>
 /// Cantidad de una variante en UNA ubicacion. Una fila por (variante, ubicacion).
@@ -10,27 +10,27 @@ namespace Tienda.Domain.Inventory;
 /// Este modelo por-ubicacion es lo que permite que manana entre una segunda
 /// sucursal agregando una sola columna (StoreId) en vez de rehacer el inventario.
 /// </summary>
-public class StockLevel : BaseEntity
+public class NivelExistencias : EntidadBase
 {
-    public Guid ProductVariantId { get; set; }
-    public ProductVariant? ProductVariant { get; set; }
+    public Guid VarianteProductoId { get; set; }
+    public VarianteProducto? Variante { get; set; }
 
-    public StockLocation Location { get; set; }
-    public int Quantity { get; set; }
+    public UbicacionStock Ubicacion { get; set; }
+    public int Cantidad { get; set; }
 
-    public void Increase(int amount)
+    public void Aumentar(int amount)
     {
-        if (amount <= 0) throw new DomainException("La cantidad a sumar debe ser mayor que cero.");
-        Quantity += amount;
-        UpdatedAt = DateTime.UtcNow;
+        if (amount <= 0) throw new ExcepcionDominio("La cantidad a sumar debe ser mayor que cero.");
+        Cantidad += amount;
+        ActualizadoEn = DateTime.UtcNow;
     }
 
-    public void Decrease(int amount)
+    public void Disminuir(int amount)
     {
-        if (amount <= 0) throw new DomainException("La cantidad a restar debe ser mayor que cero.");
-        if (amount > Quantity)
-            throw new DomainException($"Stock insuficiente en {Location}: hay {Quantity}, se piden {amount}.");
-        Quantity -= amount;
-        UpdatedAt = DateTime.UtcNow;
+        if (amount <= 0) throw new ExcepcionDominio("La cantidad a restar debe ser mayor que cero.");
+        if (amount > Cantidad)
+            throw new ExcepcionDominio($"Stock insuficiente en {Ubicacion}: hay {Cantidad}, se piden {amount}.");
+        Cantidad -= amount;
+        ActualizadoEn = DateTime.UtcNow;
     }
 }

@@ -1,13 +1,13 @@
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using Tienda.Application.Abstractions;
-using Tienda.Application.Catalog.Dtos;
-using Tienda.Application.Common;
-using Tienda.Application.Lookups.Dtos;
-using Tienda.Domain.Catalog;
-using Tienda.Domain.Enums;
+using Tienda.Aplicacion.Abstracciones;
+using Tienda.Aplicacion.Catalogo.Dtos;
+using Tienda.Aplicacion.Comun;
+using Tienda.Aplicacion.Listas.Dtos;
+using Tienda.Dominio.Catalogo;
+using Tienda.Dominio.Enumeraciones;
 
-namespace Tienda.Application.Catalog;
+namespace Tienda.Aplicacion.Catalogo;
 
 /// <summary>
 /// Servicio de SOLO LECTURA. Si algun dia aparece aqui un SaveChanges,
@@ -17,135 +17,135 @@ namespace Tienda.Application.Catalog;
 /// expresiones (o como una expresion tipada), nunca en metodos normales de C#.
 /// Un metodo estatico dentro de un Where no se puede convertir a SQL.
 /// </summary>
-public class CatalogService : ICatalogService
+public class ServicioCatalogo : IServicioCatalogo
 {
-    private readonly IAppDbContext _db;
+    private readonly IContextoBaseDatos _db;
 
-    public CatalogService(IAppDbContext db) => _db = db;
+    public ServicioCatalogo(IContextoBaseDatos db) => _db = db;
 
     /// <summary>Proyeccion a DTO publico. Nada de deposito, movimientos ni precio al mayor.</summary>
-    private static readonly Expression<Func<Product, CatalogProductDto>> ToDto = p => new CatalogProductDto(
-        p.Id,
-        p.Name,
-        p.Description,
-        p.Category != null ? p.Category.Name : string.Empty,
-        p.Brand != null ? p.Brand.Name : null,
-        p.RetailPrice,
-        p.Images.OrderByDescending(i => i.IsPrimary).ThenBy(i => i.SortOrder).Select(i => i.Url).FirstOrDefault(),
-        p.Variants
-            .Where(v => v.IsActive)
-            .Select(v => new CatalogVariantDto(
-                v.Id,
+    private static readonly Expression<Func<Producto, ProductoCatalogoDto>> ToDto = p => new ProductoCatalogoDto(
+        p.Identificador,
+        p.Nombre,
+        p.Descripcion,
+        p.Categoria != null ? p.Categoria.Nombre : string.Empty,
+        p.Marca != null ? p.Marca.Nombre : null,
+        p.PrecioVenta,
+        p.Imagenes.OrderByDescending(i => i.EsPrincipal).ThenBy(i => i.Orden).Select(i => i.DireccionUrl).FirstOrDefault(),
+        p.Variantes
+            .Where(v => v.EstaActiva)
+            .Select(v => new VarianteCatalogoDto(
+                v.Identificador,
                 v.Color,
-                v.Size,
-                v.RetailPriceOverride ?? p.RetailPrice,
-                v.StockLevels.Any(s => s.Location == StockLocation.Store && s.Quantity > 0)))
+                v.Talla,
+                v.PrecioVentaAlternativo ?? p.PrecioVenta,
+                v.NivelesExistencias.Any(s => s.Ubicacion == UbicacionStock.Tienda && s.Cantidad > 0)))
             .ToList());
 
-    public async Task<PagedResult<CatalogProductDto>> BrowseAsync(CatalogQuery query, CancellationToken ct = default)
+    public async Task<ResultadoPaginado<ProductoCatalogoDto>> ExplorarAsync(ConsultaCatalogo consulta, CancellationToken tokenCancelacion = default)
     {
-        var page = Math.Max(query.Page, 1);
-        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var page = Math.Max(consulta.Pagina, 1);
+        var pageSize = Math.Clamp(consulta.ElementosPorPagina, 1, 100);
 
         var q = BasePublishedQuery();
 
-        var search = string.IsNullOrWhiteSpace(query.Search) ? null : query.Search.Trim().ToLower();
+        var search = string.IsNullOrWhiteSpace(consulta.Busqueda) ? null : consulta.Busqueda.Trim().ToLower();
         if (search is not null)
         {
             q = q.Where(p =>
-                p.Name.ToLower().Contains(search) ||
-                p.Reference.ToLower().Contains(search) ||
-                (p.Brand != null && p.Brand.Name.ToLower().Contains(search)));
+                p.Nombre.ToLower().Contains(search) ||
+                p.Referencia.ToLower().Contains(search) ||
+                (p.Marca != null && p.Marca.Nombre.ToLower().Contains(search)));
         }
 
-        var categoryId = query.CategoryId;
-        var brandId = query.BrandId;
-        var minPrice = query.MinPrice;
-        var maxPrice = query.MaxPrice;
+        var categoryId = consulta.CategoriaId;
+        var brandId = consulta.MarcaId;
+        var minPrice = consulta.PrecioMinimo;
+        var maxPrice = consulta.PrecioMaximo;
 
-        if (categoryId is not null) q = q.Where(p => p.CategoryId == categoryId);
-        if (brandId is not null) q = q.Where(p => p.BrandId == brandId);
-        if (minPrice is not null) q = q.Where(p => p.RetailPrice >= minPrice);
-        if (maxPrice is not null) q = q.Where(p => p.RetailPrice <= maxPrice);
+        if (categoryId is not null) q = q.Where(p => p.CategoriaId == categoryId);
+        if (brandId is not null) q = q.Where(p => p.MarcaId == brandId);
+        if (minPrice is not null) q = q.Where(p => p.PrecioVenta >= minPrice);
+        if (maxPrice is not null) q = q.Where(p => p.PrecioVenta <= maxPrice);
 
         // Color y talla se evaluan sobre LA MISMA variante: "Negro + M" solo
         // coincide si existe una variante negra talla M con unidades en tienda.
-        var color = string.IsNullOrWhiteSpace(query.Color) ? null : query.Color.Trim();
-        var size = string.IsNullOrWhiteSpace(query.Size) ? null : query.Size.Trim();
+        var color = string.IsNullOrWhiteSpace(consulta.Color) ? null : consulta.Color.Trim();
+        var size = string.IsNullOrWhiteSpace(consulta.Talla) ? null : consulta.Talla.Trim();
 
         if (color is not null || size is not null)
         {
-            q = q.Where(p => p.Variants.Any(v =>
-                v.IsActive
+            q = q.Where(p => p.Variantes.Any(v =>
+                v.EstaActiva
                 && (color == null || v.Color == color)
-                && (size == null || v.Size == size)
-                && v.StockLevels.Any(s => s.Location == StockLocation.Store && s.Quantity > 0)));
+                && (size == null || v.Talla == size)
+                && v.NivelesExistencias.Any(s => s.Ubicacion == UbicacionStock.Tienda && s.Cantidad > 0)));
         }
 
-        q = query.SortBy switch
+        q = consulta.OrdenarPor switch
         {
-            "price_asc" => q.OrderBy(p => p.RetailPrice).ThenBy(p => p.Name),
-            "price_desc" => q.OrderByDescending(p => p.RetailPrice).ThenBy(p => p.Name),
-            "newest" => q.OrderByDescending(p => p.CreatedAt),
-            _ => q.OrderBy(p => p.Name)
+            "price_asc" => q.OrderBy(p => p.PrecioVenta).ThenBy(p => p.Nombre),
+            "price_desc" => q.OrderByDescending(p => p.PrecioVenta).ThenBy(p => p.Nombre),
+            "newest" => q.OrderByDescending(p => p.CreadoEn),
+            _ => q.OrderBy(p => p.Nombre)
         };
 
-        var total = await q.CountAsync(ct);
+        var total = await q.CountAsync(tokenCancelacion);
 
         var items = await q
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(ToDto)
-            .ToListAsync(ct);
+            .ToListAsync(tokenCancelacion);
 
-        return new PagedResult<CatalogProductDto>
+        return new ResultadoPaginado<ProductoCatalogoDto>
         {
-            Items = items,
-            Page = page,
-            PageSize = pageSize,
-            TotalItems = total
+            Elementos = items,
+            Pagina = page,
+            ElementosPorPagina = pageSize,
+            CantidadTotal = total
         };
     }
 
-    public async Task<CatalogProductDto?> GetByIdAsync(Guid id, CancellationToken ct = default)
+    public async Task<ProductoCatalogoDto?> ObtenerPorIdAsync(Guid identificador, CancellationToken tokenCancelacion = default)
         => await BasePublishedQuery()
-            .Where(p => p.Id == id)
+            .Where(p => p.Identificador == identificador)
             .Select(ToDto)
-            .FirstOrDefaultAsync(ct);
+            .FirstOrDefaultAsync(tokenCancelacion);
 
-    public async Task<CatalogFiltersDto> GetFiltersAsync(CancellationToken ct = default)
+    public async Task<FiltrosCatalogoDto> ObtenerFiltrosAsync(CancellationToken tokenCancelacion = default)
     {
-        var categories = await _db.Categories
+        var categories = await _db.Categorias
             .AsNoTracking()
-            .Where(c => c.IsActive)
-            .OrderBy(c => c.SortOrder).ThenBy(c => c.Name)
-            .Select(c => new LookupItemDto(c.Id, c.Name, c.ParentId))
-            .ToListAsync(ct);
+            .Where(c => c.EstaActiva)
+            .OrderBy(c => c.Orden).ThenBy(c => c.Nombre)
+            .Select(c => new ElementoListaDto(c.Identificador, c.Nombre, c.IdentificadorPadre))
+            .ToListAsync(tokenCancelacion);
 
-        var brands = await _db.Brands
+        var brands = await _db.Marcas
             .AsNoTracking()
-            .Where(b => b.IsActive)
-            .OrderBy(b => b.Name)
-            .Select(b => new LookupItemDto(b.Id, b.Name, null))
-            .ToListAsync(ct);
+            .Where(b => b.EstaActiva)
+            .OrderBy(b => b.Nombre)
+            .Select(b => new ElementoListaDto(b.Identificador, b.Nombre, null))
+            .ToListAsync(tokenCancelacion);
 
-        var purchasable = _db.ProductVariants
+        var purchasable = _db.VariantesProducto
             .AsNoTracking()
-            .Where(v => v.IsActive
-                && v.Product!.Status == ProductStatus.Active
-                && v.StockLevels.Any(s => s.Location == StockLocation.Store && s.Quantity > 0));
+            .Where(v => v.EstaActiva
+                && v.Producto!.Estado == EstadoProducto.Activo
+                && v.NivelesExistencias.Any(s => s.Ubicacion == UbicacionStock.Tienda && s.Cantidad > 0));
 
-        var colors = await purchasable.Select(v => v.Color).Distinct().OrderBy(c => c).ToListAsync(ct);
-        var sizes = await purchasable.Select(v => v.Size).Distinct().ToListAsync(ct);
+        var colors = await purchasable.Select(v => v.Color).Distinct().OrderBy(c => c).ToListAsync(tokenCancelacion);
+        var sizes = await purchasable.Select(v => v.Talla).Distinct().ToListAsync(tokenCancelacion);
 
-        return new CatalogFiltersDto(categories, brands, colors, sizes);
+        return new FiltrosCatalogoDto(categories, brands, colors, sizes);
     }
 
     /// <summary>Filtro maestro de publicacion: producto activo + al menos una variante surtida.</summary>
-    private IQueryable<Product> BasePublishedQuery()
-        => _db.Products
+    private IQueryable<Producto> BasePublishedQuery()
+        => _db.Productos
             .AsNoTracking()
-            .Where(p => p.Status == ProductStatus.Active
-                && p.Variants.Any(v => v.IsActive
-                    && v.StockLevels.Any(s => s.Location == StockLocation.Store && s.Quantity > 0)));
+            .Where(p => p.Estado == EstadoProducto.Activo
+                && p.Variantes.Any(v => v.EstaActiva
+                    && v.NivelesExistencias.Any(s => s.Ubicacion == UbicacionStock.Tienda && s.Cantidad > 0)));
 }

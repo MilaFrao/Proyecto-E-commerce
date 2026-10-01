@@ -1,16 +1,16 @@
-using Tienda.Domain.Common;
+using Tienda.Dominio.Comun;
 
-namespace Tienda.Domain.Identity;
+namespace Tienda.Dominio.Identidad;
 
-public class AppRole : BaseEntity
+public class RolAplicacion : EntidadBase
 {
-    public const string Admin     = "admin";
-    public const string Inventory = "inventario";
-    public const string Seller    = "vendedor";
-    public const string Customer  = "cliente";
+    public const string Administrador     = "admin";
+    public const string Inventario = "inventario";
+    public const string Vendedor    = "vendedor";
+    public const string Cliente  = "cliente";
 
-    public string Name { get; set; } = string.Empty;
-    public string? Description { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public string? Descripcion { get; set; }
 
-    public ICollection<AppUserRole> Users { get; set; } = new List<AppUserRole>();
+    public ICollection<RolUsuarioAplicacion> Usuarios { get; set; } = new List<RolUsuarioAplicacion>();
 }

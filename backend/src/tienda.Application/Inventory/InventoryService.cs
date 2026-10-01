@@ -1,181 +1,181 @@
 using Microsoft.EntityFrameworkCore;
-using Tienda.Application.Abstractions;
-using Tienda.Application.Common;
-using Tienda.Application.Inventory.Dtos;
-using Tienda.Domain.Catalog;
-using Tienda.Domain.Enums;
-using Tienda.Domain.Inventory;
+using Tienda.Aplicacion.Abstracciones;
+using Tienda.Aplicacion.Comun;
+using Tienda.Aplicacion.Inventario.Dtos;
+using Tienda.Dominio.Catalogo;
+using Tienda.Dominio.Enumeraciones;
+using Tienda.Dominio.Inventario;
 
-namespace Tienda.Application.Inventory;
+namespace Tienda.Aplicacion.Inventario;
 
 /// <summary>
 /// Corazon del MVP 1. Toda alteracion de stock pasa por aqui y deja
 /// su rastro en StockMovement: no se toca StockLevel desde ningun otro lado.
 /// </summary>
-public class InventoryService : IInventoryService
+public class ServicioInventario : IServicioInventario
 {
-    private readonly IAppDbContext _db;
-    private readonly IDateTimeProvider _clock;
+    private readonly IContextoBaseDatos _db;
+    private readonly IProveedorFechaHora _clock;
 
-    public InventoryService(IAppDbContext db, IDateTimeProvider clock)
+    public ServicioInventario(IContextoBaseDatos db, IProveedorFechaHora clock)
     {
         _db = db;
         _clock = clock;
     }
 
-    public async Task<Result<StockSummaryDto>> RegisterEntryAsync(Guid variantId, int quantity, string? notes, CancellationToken ct = default)
+    public async Task<Resultado<ResumenExistenciasDto>> RegistrarEntradaAsync(Guid varianteId, int cantidad, string? notas, CancellationToken tokenCancelacion = default)
     {
-        if (quantity <= 0) return Result.Failure<StockSummaryDto>("La cantidad debe ser mayor que cero.");
+        if (cantidad <= 0) return Resultado.Fallo<ResumenExistenciasDto>("La cantidad debe ser mayor que cero.");
 
-        var variant = await LoadVariantAsync(variantId, ct);
-        if (variant is null) return Result.Failure<StockSummaryDto>("La variante no existe.");
+        var variant = await LoadVariantAsync(varianteId, tokenCancelacion);
+        if (variant is null) return Resultado.Fallo<ResumenExistenciasDto>("La variante no existe.");
 
-        var warehouse = GetOrCreateLevel(variant, StockLocation.Warehouse);
-        warehouse.Increase(quantity);
+        var warehouse = GetOrCreateLevel(variant, UbicacionStock.Deposito);
+        warehouse.Aumentar(cantidad);
 
-        RecordMovement(variant, MovementType.Entry, quantity, null, StockLocation.Warehouse, notes);
+        RecordMovement(variant, TipoMovimiento.Entrada, cantidad, null, UbicacionStock.Deposito, notas);
 
-        await _db.SaveChangesAsync(ct);
-        return Result.Success(Summarize(variant));
+        await _db.SaveChangesAsync(tokenCancelacion);
+        return Resultado.Exito(Summarize(variant));
     }
 
-    public async Task<Result<StockSummaryDto>> SupplyToStoreAsync(Guid variantId, int quantity, string? notes, CancellationToken ct = default)
+    public async Task<Resultado<ResumenExistenciasDto>> ReabastecerTiendaAsync(Guid varianteId, int cantidad, string? notas, CancellationToken tokenCancelacion = default)
     {
-        if (quantity <= 0) return Result.Failure<StockSummaryDto>("La cantidad debe ser mayor que cero.");
+        if (cantidad <= 0) return Resultado.Fallo<ResumenExistenciasDto>("La cantidad debe ser mayor que cero.");
 
-        var variant = await LoadVariantAsync(variantId, ct);
-        if (variant is null) return Result.Failure<StockSummaryDto>("La variante no existe.");
+        var variant = await LoadVariantAsync(varianteId, tokenCancelacion);
+        if (variant is null) return Resultado.Fallo<ResumenExistenciasDto>("La variante no existe.");
 
-        var warehouse = GetOrCreateLevel(variant, StockLocation.Warehouse);
-        var store     = GetOrCreateLevel(variant, StockLocation.Store);
+        var warehouse = GetOrCreateLevel(variant, UbicacionStock.Deposito);
+        var store     = GetOrCreateLevel(variant, UbicacionStock.Tienda);
 
-        if (warehouse.Quantity < quantity)
-            return Result.Failure<StockSummaryDto>($"Stock insuficiente en deposito: hay {warehouse.Quantity}, se piden {quantity}.");
+        if (warehouse.Cantidad < cantidad)
+            return Resultado.Fallo<ResumenExistenciasDto>($"Stock insuficiente en deposito: hay {warehouse.Cantidad}, se piden {cantidad}.");
 
-        warehouse.Decrease(quantity);
-        store.Increase(quantity);
+        warehouse.Disminuir(cantidad);
+        store.Aumentar(cantidad);
 
-        RecordMovement(variant, MovementType.Transfer, quantity, StockLocation.Warehouse, StockLocation.Store, notes);
+        RecordMovement(variant, TipoMovimiento.Traslado, cantidad, UbicacionStock.Deposito, UbicacionStock.Tienda, notas);
 
-        await _db.SaveChangesAsync(ct);
-        return Result.Success(Summarize(variant));
+        await _db.SaveChangesAsync(tokenCancelacion);
+        return Resultado.Exito(Summarize(variant));
     }
 
-    public async Task<Result<StockSummaryDto>> RegisterSaleAsync(Guid variantId, int quantity, string? notes, CancellationToken ct = default)
+    public async Task<Resultado<ResumenExistenciasDto>> RegistrarVentaAsync(Guid varianteId, int cantidad, string? notas, CancellationToken tokenCancelacion = default)
     {
-        if (quantity <= 0) return Result.Failure<StockSummaryDto>("La cantidad debe ser mayor que cero.");
+        if (cantidad <= 0) return Resultado.Fallo<ResumenExistenciasDto>("La cantidad debe ser mayor que cero.");
 
-        var variant = await LoadVariantAsync(variantId, ct);
-        if (variant is null) return Result.Failure<StockSummaryDto>("La variante no existe.");
+        var variant = await LoadVariantAsync(varianteId, tokenCancelacion);
+        if (variant is null) return Resultado.Fallo<ResumenExistenciasDto>("La variante no existe.");
 
-        var store = GetOrCreateLevel(variant, StockLocation.Store);
-        if (store.Quantity < quantity)
-            return Result.Failure<StockSummaryDto>($"No hay unidades surtidas suficientes: hay {store.Quantity}, se piden {quantity}.");
+        var store = GetOrCreateLevel(variant, UbicacionStock.Tienda);
+        if (store.Cantidad < cantidad)
+            return Resultado.Fallo<ResumenExistenciasDto>($"No hay unidades surtidas suficientes: hay {store.Cantidad}, se piden {cantidad}.");
 
-        store.Decrease(quantity);
-        RecordMovement(variant, MovementType.Sale, -quantity, StockLocation.Store, null, notes);
+        store.Disminuir(cantidad);
+        RecordMovement(variant, TipoMovimiento.Venta, -cantidad, UbicacionStock.Tienda, null, notas);
 
-        await _db.SaveChangesAsync(ct);
-        return Result.Success(Summarize(variant));
+        await _db.SaveChangesAsync(tokenCancelacion);
+        return Resultado.Exito(Summarize(variant));
     }
 
-    public async Task<Result<StockSummaryDto>> GetStockAsync(Guid variantId, CancellationToken ct = default)
+    public async Task<Resultado<ResumenExistenciasDto>> ObtenerExistenciasAsync(Guid varianteId, CancellationToken tokenCancelacion = default)
     {
-        var variant = await LoadVariantAsync(variantId, ct);
+        var variant = await LoadVariantAsync(varianteId, tokenCancelacion);
         return variant is null
-            ? Result.Failure<StockSummaryDto>("La variante no existe.")
-            : Result.Success(Summarize(variant));
+            ? Resultado.Fallo<ResumenExistenciasDto>("La variante no existe.")
+            : Resultado.Exito(Summarize(variant));
     }
 
-    public async Task<IReadOnlyList<StockMovementDto>> GetMovementHistoryAsync(Guid variantId, CancellationToken ct = default)
-        => await _db.StockMovements
-            .Where(m => m.ProductVariantId == variantId)
-            .OrderByDescending(m => m.OccurredAt)
-            .Select(m => new StockMovementDto(
-                m.Id, m.ProductVariantId, m.Type, m.Quantity,
-                m.FromLocation, m.ToLocation,
-                m.ResultingWarehouseQuantity, m.ResultingStoreQuantity,
-                m.OccurredAt, m.Notes))
-            .ToListAsync(ct);
+    public async Task<IReadOnlyList<MovimientoExistenciasDto>> ObtenerHistorialMovimientosAsync(Guid varianteId, CancellationToken tokenCancelacion = default)
+        => await _db.MovimientosExistencias
+            .Where(m => m.VarianteProductoId == varianteId)
+            .OrderByDescending(m => m.OcurridoEn)
+            .Select(m => new MovimientoExistenciasDto(
+                m.Identificador, m.VarianteProductoId, m.Tipo, m.Cantidad,
+                m.UbicacionOrigen, m.UbicacionDestino,
+                m.CantidadResultanteDeposito, m.CantidadResultanteTienda,
+                m.OcurridoEn, m.Notas))
+            .ToListAsync(tokenCancelacion);
 
-    public async Task<IReadOnlyList<VariantStockDto>> SearchVariantsAsync(string? search, CancellationToken ct = default)
+    public async Task<IReadOnlyList<ExistenciasVarianteDto>> BuscarVariantesAsync(string? busqueda, CancellationToken tokenCancelacion = default)
     {
-        var q = _db.ProductVariants
+        var q = _db.VariantesProducto
             .AsNoTracking()
-            .Where(v => v.IsActive && v.Product!.Status == ProductStatus.Active);
+            .Where(v => v.EstaActiva && v.Producto!.Estado == EstadoProducto.Activo);
 
-        var term = string.IsNullOrWhiteSpace(search) ? null : search.Trim().ToLower();
+        var term = string.IsNullOrWhiteSpace(busqueda) ? null : busqueda.Trim().ToLower();
         if (term is not null)
         {
             q = q.Where(v =>
-                v.Sku.ToLower().Contains(term) ||
-                v.Product!.Name.ToLower().Contains(term) ||
-                v.Product.Reference.ToLower().Contains(term));
+                v.CodigoSku.ToLower().Contains(term) ||
+                v.Producto!.Nombre.ToLower().Contains(term) ||
+                v.Producto.Referencia.ToLower().Contains(term));
         }
 
         return await q
-            .OrderBy(v => v.Product!.Name).ThenBy(v => v.Color).ThenBy(v => v.Size)
+            .OrderBy(v => v.Producto!.Nombre).ThenBy(v => v.Color).ThenBy(v => v.Talla)
             .Take(50)
-            .Select(v => new VariantStockDto(
-                v.Id,
-                v.Product!.Name,
-                v.Product.Reference,
-                v.Sku,
+            .Select(v => new ExistenciasVarianteDto(
+                v.Identificador,
+                v.Producto!.Nombre,
+                v.Producto.Referencia,
+                v.CodigoSku,
                 v.Color,
-                v.Size,
-                v.StockLevels.Where(s => s.Location == StockLocation.Warehouse).Sum(s => s.Quantity),
-                v.StockLevels.Where(s => s.Location == StockLocation.Store).Sum(s => s.Quantity)))
-            .ToListAsync(ct);
+                v.Talla,
+                v.NivelesExistencias.Where(s => s.Ubicacion == UbicacionStock.Deposito).Sum(s => s.Cantidad),
+                v.NivelesExistencias.Where(s => s.Ubicacion == UbicacionStock.Tienda).Sum(s => s.Cantidad)))
+            .ToListAsync(tokenCancelacion);
     }
 
     // ---------------------------------------------------------------- helpers
 
-    private Task<ProductVariant?> LoadVariantAsync(Guid id, CancellationToken ct)
-        => _db.ProductVariants
-            .Include(v => v.StockLevels)
-            .FirstOrDefaultAsync(v => v.Id == id, ct);
+    private Task<VarianteProducto?> LoadVariantAsync(Guid id, CancellationToken ct)
+        => _db.VariantesProducto
+            .Include(v => v.NivelesExistencias)
+            .FirstOrDefaultAsync(v => v.Identificador == id, ct);
 
-    private StockLevel GetOrCreateLevel(ProductVariant variant, StockLocation location)
+    private NivelExistencias GetOrCreateLevel(VarianteProducto variant, UbicacionStock location)
     {
-        var level = variant.StockLevels.FirstOrDefault(s => s.Location == location);
+        var level = variant.NivelesExistencias.FirstOrDefault(s => s.Ubicacion == location);
         if (level is not null) return level;
 
-        level = new StockLevel
+        level = new NivelExistencias
         {
-            ProductVariantId = variant.Id,
-            Location = location,
-            Quantity = 0
+            VarianteProductoId = variant.Identificador,
+            Ubicacion = location,
+            Cantidad = 0
         };
-        variant.StockLevels.Add(level);
-        _db.StockLevels.Add(level);
+        variant.NivelesExistencias.Add(level);
+        _db.NivelesExistencias.Add(level);
         return level;
     }
 
-    private void RecordMovement(ProductVariant variant, MovementType type, int quantity,
-        StockLocation? from, StockLocation? to, string? notes)
+    private void RecordMovement(VarianteProducto variant, TipoMovimiento type, int quantity,
+        UbicacionStock? from, UbicacionStock? to, string? notes)
     {
-        var warehouse = variant.StockLevels.FirstOrDefault(s => s.Location == StockLocation.Warehouse)?.Quantity ?? 0;
-        var store     = variant.StockLevels.FirstOrDefault(s => s.Location == StockLocation.Store)?.Quantity ?? 0;
+        var warehouse = variant.NivelesExistencias.FirstOrDefault(s => s.Ubicacion == UbicacionStock.Deposito)?.Cantidad ?? 0;
+        var store     = variant.NivelesExistencias.FirstOrDefault(s => s.Ubicacion == UbicacionStock.Tienda)?.Cantidad ?? 0;
 
-        _db.StockMovements.Add(new StockMovement
+        _db.MovimientosExistencias.Add(new MovimientoExistencias
         {
-            ProductVariantId = variant.Id,
-            Type = type,
-            Quantity = quantity,
-            FromLocation = from,
-            ToLocation = to,
-            ResultingWarehouseQuantity = warehouse,
-            ResultingStoreQuantity = store,
-            OccurredAt = _clock.UtcNow,
-            Notes = notes
+            VarianteProductoId = variant.Identificador,
+            Tipo = type,
+            Cantidad = quantity,
+            UbicacionOrigen = from,
+            UbicacionDestino = to,
+            CantidadResultanteDeposito = warehouse,
+            CantidadResultanteTienda = store,
+            OcurridoEn = _clock.AhoraUtc,
+            Notas = notes
         });
     }
 
-    private static StockSummaryDto Summarize(ProductVariant variant) => new(
-        variant.Id,
-        variant.Sku,
+    private static ResumenExistenciasDto Summarize(VarianteProducto variant) => new(
+        variant.Identificador,
+        variant.CodigoSku,
         variant.Color,
-        variant.Size,
-        variant.StockLevels.FirstOrDefault(s => s.Location == StockLocation.Warehouse)?.Quantity ?? 0,
-        variant.StockLevels.FirstOrDefault(s => s.Location == StockLocation.Store)?.Quantity ?? 0);
+        variant.Talla,
+        variant.NivelesExistencias.FirstOrDefault(s => s.Ubicacion == UbicacionStock.Deposito)?.Cantidad ?? 0,
+        variant.NivelesExistencias.FirstOrDefault(s => s.Ubicacion == UbicacionStock.Tienda)?.Cantidad ?? 0);
 }

@@ -22,6 +22,8 @@ appsettings.Production.json
 !.vscode/extensions.json
 .idea/
 *.swp
+.postman/
+postman/
 .DS_Store
 .editorconfig
 

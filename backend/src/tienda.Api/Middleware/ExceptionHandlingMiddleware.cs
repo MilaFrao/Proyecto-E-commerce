@@ -21,6 +21,12 @@ public class ExceptionHandlingMiddleware
         {
             await _next(context);
         }
+        catch (BadHttpRequestException exception)
+        {
+            // Datos que no se pueden leer: ?pagina=abc, una fecha mal escrita, un enum desconocido en el JSON...
+            _logger.LogWarning(exception, "Peticion con formato invalido");
+            await WriteResponseAsync(context, (HttpStatusCode)exception.StatusCode, "La peticion tiene datos con un formato que no se puede leer.");
+        }
         catch (DomainException exception)
         {
             _logger.LogWarning(exception, "Regla de negocio violada");

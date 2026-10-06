@@ -12,8 +12,8 @@ using Tienda.Infrastructure.Persistence;
 namespace Tienda.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20261001183826_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20261002174415_CreacionInicial")]
+    partial class CreacionInicial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -296,12 +296,16 @@ namespace Tienda.Infrastructure.Migrations
 
                     b.Property<string>("HuellaContrasena")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
 
                     b.Property<string>("NombreCompleto")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UltimoAccesoEn")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");

@@ -13,5 +13,6 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         b.Property(u => u.CorreoElectronico).HasMaxLength(200).IsRequired();
         b.HasIndex(u => u.CorreoElectronico).IsUnique();
         b.Property(u => u.NombreCompleto).HasMaxLength(200).IsRequired();
+        b.Property(u => u.HuellaContrasena).HasMaxLength(256).IsRequired();
     }
 }

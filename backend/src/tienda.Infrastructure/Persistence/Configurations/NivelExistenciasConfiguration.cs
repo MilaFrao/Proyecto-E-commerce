@@ -9,10 +9,14 @@ public class NivelExistenciasConfiguration : IEntityTypeConfiguration<NivelExist
 {
     public void Configure(EntityTypeBuilder<NivelExistencias> b)
     {
-        b.ToTable("niveles_existencias");
+        // El stock nunca puede quedar negativo, aunque un error de codigo lo intente.
+        b.ToTable("niveles_existencias", t => t.HasCheckConstraint("CK_niveles_existencias_cantidad", "\"Cantidad\" >= 0"));
         b.HasKey(s => s.Id);
 
         b.Property(s => s.Ubicacion).HasConversion<int>();
+
+        // uint + IsRowVersion => Npgsql usa xmin (columna de sistema, no crea columna nueva).
+        b.Property(s => s.Version).IsRowVersion();
 
         b.HasOne(s => s.Variante)
             .WithMany(v => v.NivelesExistencias)

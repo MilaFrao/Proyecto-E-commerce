@@ -12,6 +12,7 @@ public class Usuario : BaseEntity
     public string NombreCompleto { get; set; } = string.Empty;
     public string HuellaContrasena { get; set; } = string.Empty;
     public bool EstaActivo { get; set; } = true;
+    public DateTime? UltimoAccesoEn { get; set; }
 
     public ICollection<UsuarioRol> Roles { get; set; } = new List<UsuarioRol>();
 }

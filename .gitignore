@@ -16,6 +16,7 @@ dist-ssr/
 .env.local
 .env.*.local
 appsettings.Production.json
+appsettings.Development.json
 
 # Editores
 .vscode/*
@@ -32,3 +33,6 @@ postman/
 npm-debug.log*
 # TypeScript
 *.tsbuildinfo
+
+# Fotos subidas en desarrollo (decisión 014)
+uploads/

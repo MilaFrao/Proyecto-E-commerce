@@ -12,4 +12,7 @@ public record ProductoDto(
     decimal PrecioVenta,
     decimal PrecioMayorista,
     EstadoProducto Estado,
-    int CantidadVariantes);
+    int CantidadVariantes,
+    int UnidadesDeposito,
+    int UnidadesTienda,
+    string? UrlImagenPrincipal);

@@ -18,6 +18,12 @@ public class NivelExistencias : BaseEntity
     public UbicacionStock Ubicacion { get; set; }
     public int Cantidad { get; set; }
 
+    /// <summary>
+    /// Control de concurrencia: si dos movimientos leen el mismo saldo a la vez, el segundo en guardar
+    /// falla en vez de pisar al primero. En PostgreSQL se mapea a la columna de sistema xmin.
+    /// </summary>
+    public uint Version { get; set; }
+
     public void Aumentar(int unidades)
     {
         if (unidades <= 0) throw new DomainException("La cantidad a sumar debe ser mayor que cero.");

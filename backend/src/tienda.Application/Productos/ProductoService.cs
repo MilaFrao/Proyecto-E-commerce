@@ -57,7 +57,12 @@ public class ProductoService : IProductoService
                 p.PrecioVenta,
                 p.PrecioMayorista,
                 p.Estado,
-                p.Variantes.Count))
+                p.Variantes.Count,
+                p.Variantes.SelectMany(v => v.NivelesExistencias)
+                    .Where(n => n.Ubicacion == UbicacionStock.Deposito).Sum(n => (int?)n.Cantidad) ?? 0,
+                p.Variantes.SelectMany(v => v.NivelesExistencias)
+                    .Where(n => n.Ubicacion == UbicacionStock.Tienda).Sum(n => (int?)n.Cantidad) ?? 0,
+                p.Imagenes.OrderByDescending(i => i.EsPrincipal).ThenBy(i => i.Orden).Select(i => i.DireccionUrl).FirstOrDefault()))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProductoDto>
@@ -206,7 +211,9 @@ public class ProductoService : IProductoService
             producto.Id, producto.Nombre, producto.Referencia, producto.Descripcion,
             categoria.Nombre, nombreMarca,
             producto.PrecioVenta, producto.PrecioMayorista,
-            producto.Estado, variantes.Count));
+            producto.Estado, variantes.Count,
+            request.Variantes.Sum(v => v.CantidadInicial), 0,
+            producto.Imagenes.FirstOrDefault()?.DireccionUrl));
     }
 
     public async Task<Result> DesactivarAsync(Guid id, string? motivo, CancellationToken cancellationToken = default)

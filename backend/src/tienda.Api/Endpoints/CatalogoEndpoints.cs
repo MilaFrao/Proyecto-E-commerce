@@ -7,7 +7,7 @@ public static class CatalogoEndpoints
     public static void MapCatalogoEndpoints(this IEndpointRouteBuilder app)
     {
         // Publico y sin autenticacion: es la regla de la seccion 15.
-        var group = app.MapGroup("/api/catalogo").WithTags("Catalogo");
+        var group = app.MapGroup("/api/catalogo").WithTags("Catalogo").AllowAnonymous();
 
         group.MapGet("/filtros", async (ICatalogoService service, CancellationToken cancellationToken)
             => Results.Ok(await service.ObtenerFiltrosAsync(cancellationToken)));

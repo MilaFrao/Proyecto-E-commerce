@@ -24,5 +24,6 @@ public class MovimientoExistenciasConfiguration : IEntityTypeConfiguration<Movim
             .OnDelete(DeleteBehavior.Restrict); // el historial sobrevive a la variante
 
         b.HasIndex(m => new { m.VarianteProductoId, m.OcurridoEn });
+        b.HasIndex(m => m.OcurridoEn); // historial global, del mas reciente al mas viejo
     }
 }

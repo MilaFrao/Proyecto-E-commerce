@@ -3,6 +3,8 @@
 Registro de las decisiones tomadas y del porqué. Cuando una decisión cambie, se
 agrega una entrada nueva en vez de editar la vieja: el historial importa.
 
+**Stack:** React + TypeScript + Vite · ASP.NET Core 8 (Minimal APIs) · EF Core 8 · PostgreSQL · Docker · Git + GitHub
+
 ---
 
 ## 001 — Monorepo con backend y frontend hermanos
@@ -243,14 +245,187 @@ vuelven a llamarse como las genera EF (`Migrations/`).
 
 ---
 
+## 012 — Autenticación con JWT propio
+
+**Fecha:** 2026-10-02 · **Estado:** implementada (back y front)
+
+Resuelve el pendiente de autenticación. Login con correo y clave; el back emite
+un token JWT firmado con los roles dentro (`admin`, `inventario`, `vendedor`) y
+las rutas internas lo exigen con políticas por rol. El catálogo público
+(`/api/catalogo/*`) sigue sin autenticación.
+
+**Alternativa descartada:** ASP.NET Identity. Trae más tablas y ceremonia de la
+que esta tienda necesita hoy, y un JWT simple es más fácil de llamar desde
+herramientas externas como n8n (decisión 013).
+
+**Cómo quedó**
+
+- **Token:** HS256, 480 min por defecto (`Jwt:ExpiraMinutos`). Claims `sub`, `email`,
+  `name`, `jti` y un claim `role` por cada rol. Se valida emisor, audiencia, firma y
+  vencimiento, con 30 s de tolerancia de reloj.
+- **Clave de firma:** `Jwt:Key`, mínimo 32 caracteres; si falta o es corta, la API
+  no arranca. En producción va por variable de entorno (`Jwt__Key`), nunca en un
+  archivo del repositorio. La de `appsettings.Development.json` es solo de desarrollo.
+- **Contraseñas:** PBKDF2 (`PasswordHasher` de `Microsoft.Extensions.Identity.Core`,
+  sin adoptar Identity completo). Mínimo 8 caracteres con letra y número.
+- **Un solo mensaje de error** en el login (`Correo o clave incorrectos.`) para
+  correo inexistente, clave mala o cuenta desactivada. Si el usuario no existe se
+  verifica igual una huella falsa, para que el tiempo de respuesta no lo delate.
+- **Desactivar corta el acceso al instante:** en cada petición el back comprueba
+  que el usuario siga existiendo y activo (`OnTokenValidated`). Cuesta una consulta
+  por petición; a esta escala es aceptable y evita tener que revocar tokens.
+- **Límite de intentos:** `POST /api/auth/login` admite 5 por minuto y por IP
+  (`RateLimit:LoginPorMinuto`; 20 en desarrollo). Respuesta 429.
+- **Políticas:** `Admin`; `Inventario` (admin + inventario); `Personal` (los tres).
+  Las ventas (`POST …/ventas`) son solo de Inventario/admin; el vendedor consulta.
+- **Primer administrador:** `IdentitySeeder` lo crea al arrancar si no existe
+  ninguno y están configurados `Admin:Correo` y `Admin:Clave`. Los roles se
+  crean siempre.
+- **Front:** `AuthProvider` guarda la sesión en `localStorage` (`tienda.sesion`),
+  al recargar la confirma con `GET /api/auth/yo`, adjunta `Authorization: Bearer` a
+  cada petición salvo las públicas, y ante un 401 o al vencer el token vuelve al
+  login con aviso. Roles del back → panel: `admin`→`super`, `inventario`→`inventory`,
+  `vendedor`→`seller` (gana el de mayor poder). Las cuentas `cliente` no entran al panel.
+
+**Concesiones conocidas**
+
+- **Sin refresh token.** Al vencer (8 h) hay que volver a entrar. Para un panel de
+  tienda es razonable; se revisa si molesta.
+- **El token vive en `localStorage`**, legible por cualquier script de la página: un
+  XSS lo robaría. La alternativa es una cookie `httpOnly` + protección CSRF, más
+  segura pero más trabajo y menos cómoda para n8n. Se mantiene hasta que el panel
+  esté expuesto a internet; en ese momento se reevalúa.
+- **Los roles viajan dentro del token:** cambiar el rol de alguien no surte efecto
+  hasta su próximo login. Hoy no hay endpoint para cambiar roles; cuando exista,
+  habrá que decidir si se invalida la sesión.
+- **Sin cambio ni recuperación de contraseña.** El administrador crea las cuentas y
+  entrega la clave inicial. Es la deuda más visible de esta pieza.
+- **Limitador por IP** detrás de un proxy inverso necesita configurar
+  `ForwardedHeaders`, o todos los intentos parecerán venir de la misma IP.
+- **Swashbuckle fijado en 6.9.0** (la 10.x usa otra API de OpenAPI que no pude
+  verificar sin compilar). Subirlo es una tarea aparte.
+
+---
+
+## 013 — La app es el banco de pruebas para herramientas nuevas
+
+**Fecha:** 2026-10-02 · **Estado:** aceptada
+
+Este proyecto sirve también para practicar herramientas que se vayan conociendo.
+La primera es **n8n**. Casos previstos, en orden de dificultad:
+
+1. **Producto nuevo publicado:** la API avisa por webhook cuando se crea o activa un producto.
+2. **Alerta de stock bajo:** aviso cuando una variante baja de un umbral.
+3. **Reporte diario:** n8n consulta la API cada día y arma un resumen de ventas y stock.
+4. **Chatbot de atención** que consulta el catálogo y aporta a las métricas.
+
+**Regla:** la app emite eventos y expone endpoints; la lógica de automatización
+vive en n8n, no dentro del back. Así la app sigue funcionando si n8n no está.
+
+**Consecuencia:** hay que construir endpoints de lectura para métricas, un
+mecanismo de webhooks salientes y un umbral de stock bajo (pendiente de decidir).
+
+---
+
+## 014 — Registro de productos: sin «Borrador» y fotos en disco local
+
+**Fecha:** 2026-10-02 · **Estado:** implementada
+
+**Sin estado «Borrador» (por ahora).** El mockup tenía «Guardar borrador», pero el
+back solo conoce `Activo` e `Inactivo` y un borrador que no se puede retomar no
+sirve de nada: retomarlo exige la pantalla de *Editar producto*. «Crear producto»
+registra el producto completo; ya queda fuera del catálogo público hasta que tenga
+unidades surtidas en tienda (regla de la decisión 005), así que cubre la necesidad
+real. El borrador entra junto con *Editar producto*, y entonces se decide si es un
+estado del producto o algo que vive solo en el cliente.
+
+**Fotos en disco local, detrás de una interfaz.** `POST /api/productos/imagenes`
+(solo Inventario/admin) recibe el archivo, lo valida y devuelve una URL pública
+(`/media/productos/<guid>.jpg`) que el front manda luego en `urlImagen`.
+
+- `IAlmacenImagenes` (Application) y `AlmacenImagenesLocal` (Infrastructure): pasar a S3
+  o similar es escribir otra implementación, sin tocar endpoints ni servicios.
+- **El tipo se decide por el contenido** (JPEG, PNG o WebP por sus primeros bytes), no por
+  la extensión ni el `Content-Type` que declare el cliente. SVG queda fuera a propósito:
+  puede llevar scripts.
+- **El nombre lo genera el servidor** (GUID): nada que mande el cliente forma parte de la ruta.
+- Máximo 5 MB (`Imagenes:TamanoMaximoMb`). Carpeta en `Imagenes:Carpeta`
+  (por defecto `uploads/` junto al proyecto de la API; está en `.gitignore`).
+- Se sirven con `X-Content-Type-Options: nosniff` y caché larga (los nombres nunca se reutilizan).
+- El front sube la foto **al guardar**, no al elegirla, para no dejar archivos de formularios
+  abandonados; y si crear el producto falla, el reintento no vuelve a subir la misma foto.
+
+**Marcas escritas a mano.** El campo Marca sugiere las existentes; si se escribe una nueva
+se crea al guardar (`POST /api/listas/marcas`). La comparación ignora mayúsculas.
+
+**Concesiones conocidas**
+
+- **Archivos huérfanos:** si la foto se sube y el producto no llega a crearse (error o el
+  usuario se va), el archivo queda en disco. Hace falta una limpieza periódica cuando importe.
+- **Una sola foto por producto** (la principal). El modelo ya admite varias; la pantalla no.
+- **El disco local no sirve para más de una instancia de la API** ni para despliegues sin
+  disco persistente. Es el momento de la implementación S3.
+- En producción `/media` debe llegar al back desde el mismo origen que el front (proxy inverso),
+  igual que `/api`.
+- El estado «bajo» de stock no se muestra en la lista de productos: depende del umbral,
+  que sigue pendiente. Hoy se ven Disponible / En depósito / Agotado.
+
+---
+
+## 015 — Inventario: quién movió qué, y sin pisarse
+
+**Fecha:** 2026-10-05 · **Estado:** implementada
+
+Conecta Inventario, Surtido e Historial al back y completa los movimientos que
+faltaban.
+
+- **Cada movimiento lleva firma.** `MovimientoExistencias.RealizadoPorUsuarioId` se llena
+  con el usuario del token (`IUsuarioActual`, implementado en la API con
+  `IHttpContextAccessor`). Application no sabe nada de HTTP. Los movimientos de la
+  semilla quedan sin usuario y se muestran como «Sistema».
+- **Ajuste y merma.** El ajuste deja una ubicación en lo que se contó físicamente y
+  registra la diferencia (positiva o negativa); la merma descuenta unidades dañadas o
+  perdidas. En los dos el **motivo es obligatorio**: un cambio de stock sin explicación
+  es justo lo que el historial existe para evitar (decisión 006).
+- **Surtido en lote, todo o nada.** `POST /api/inventario/surtido` mueve varias
+  variantes en una sola transacción. Si una no tiene stock suficiente, no se mueve
+  ninguna y el error dice cuál.
+- **Concurrencia optimista.** `NivelExistencias.Version` se mapea a la columna de sistema
+  `xmin` de PostgreSQL: si dos personas mueven la misma prenda (variante) a la vez, el
+  segundo guardado falla en vez de pisar al primero, y el usuario recibe un mensaje para
+  reintentar con los números nuevos. Cada movimiento marca los dos niveles de la variante
+  (depósito y tienda), así la «foto» de saldos que guarda el historial nunca queda vieja. Además, un `CHECK (Cantidad >= 0)` garantiza en la
+  base que el stock nunca queda negativo, aunque el código se equivoque.
+- **Resumen e historial global.** `GET /api/inventario/resumen?desde=` da los totales y lo
+  movido desde una fecha; `GET /api/inventario/movimientos` es el historial de todo,
+  paginado y con filtros. El resumen es también la materia prima del reporte diario de
+  n8n (decisión 013).
+- **«Hoy» lo decide quien mira.** El back guarda todo en UTC; el front manda la medianoche
+  local como `desde`. Así «surtidas hoy» es el día de Caracas y no el de Greenwich.
+
+**Lo que queda fuera**
+
+- **Devoluciones:** el tipo existe en el modelo, pero falta decidir si lo devuelto vuelve a
+  tienda (vendible) o a depósito (para revisar).
+- **«Stock bajo»:** sigue sin umbral; las pantallas muestran Disponible / En depósito / Agotado.
+- **Ventas desde el panel:** se registran a mano en el diálogo de movimientos (solo
+  inventario y admin). Un punto de venta de verdad es otra pieza.
+- La sugerencia de cuánto surtir: hoy cada fila arranca en 0 y la persona decide.
+
+---
+
 ## Pendientes de decisión
 
 | Tema | Bloquea a |
 |---|---|
-| Mecanismo de autenticación (ASP.NET Identity vs. JWT propio) | Back-office, pantalla de vendedores |
 | Modalidad de promociones (precio promocional, % de descuento, por categoría) | MVP 3 |
 | Profundidad de la jerarquía de categorías (el filtro del catálogo hoy no incluye subcategorías) | Navegación del catálogo |
 | Búsqueda: `ILIKE` simple vs. full-text de PostgreSQL | Rendimiento del catálogo |
-| Almacenamiento de imágenes (disco local vs. S3 o equivalente) | Registro de productos |
+| Editar producto, y con él el estado «Borrador» | Retomar productos incompletos |
+| Limpieza de fotos huérfanas y más de una foto por producto | Crecimiento del almacenamiento |
 | Umbral de "stock bajo": global o por producto | Panel y alertas |
+| Mecanismo de webhooks salientes (reintentos, firma, tabla de eventos) | Casos n8n |
 | Moneda de la tienda (hoy el front asume USD, centralizado en `money.ts`) | Precios en el catálogo |
+| Cambio y recuperación de contraseña (hoy solo el admin crea cuentas) | Autoservicio del personal |
+| Token en `localStorage` vs. cookie `httpOnly`, y refresh tokens | Exponer el panel a internet |
+| Devoluciones: ¿vuelven a tienda o a depósito? | Registrar devoluciones |

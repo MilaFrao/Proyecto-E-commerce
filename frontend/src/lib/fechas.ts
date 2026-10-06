@@ -32,3 +32,22 @@ export function etiquetaDia(iso: string): string {
 }
 
 export const horaDe = (iso: string) => hora(new Date(iso))
+
+/** «Buenos días», «Buenas tardes» o «Buenas noches» según la hora local. */
+export function saludoDe(d: Date = new Date()): string {
+  const h = d.getHours()
+  return h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches'
+}
+
+/** «martes 6 oct 2026», en hora local. */
+export function fechaLarga(d: Date = new Date()): string {
+  const partes = new Intl.DateTimeFormat('es-VE', { weekday: 'long', day: 'numeric', month: 'short', year: 'numeric' }).formatToParts(d)
+  const de = (t: Intl.DateTimeFormatPartTypes) => (partes.find((p) => p.type === t)?.value ?? '').replace(/\.$/, '')
+  return `${de('weekday')} ${de('day')} ${de('month')} ${de('year')}`
+}
+
+/** «Lun», «Mar»… del día local de una fecha ISO. */
+export function diaCorto(iso: string): string {
+  const w = new Date(iso).toLocaleDateString('es-VE', { weekday: 'short' }).replace(/\.$/, '')
+  return w.charAt(0).toUpperCase() + w.slice(1)
+}

@@ -4,7 +4,13 @@ import { api } from './client'
 
 export type Ubicacion = 'Deposito' | 'Tienda'
 export type TipoMovimiento = 'Entrada' | 'Traslado' | 'Venta' | 'Devolucion' | 'Ajuste' | 'Merma'
-export type EstadoFiltro = 'todos' | 'disponible' | 'solo-deposito' | 'agotado' | 'por-surtir'
+export type EstadoFiltro = 'todos' | 'disponible' | 'solo-deposito' | 'agotado' | 'por-surtir' | 'critico'
+
+/**
+ * Una variante es «crítica» si le quedan entre 1 y este número de unidades sumando depósito y tienda.
+ * Umbral provisional y global (igual al del back); si pasa a ser por producto, se mueve a la configuración.
+ */
+export const UMBRAL_STOCK_CRITICO = 3
 
 export type ExistenciasVariante = {
   varianteId: string
@@ -34,6 +40,7 @@ export type ResumenInventario = {
   variantesActivas: number
   variantesSinSurtir: number
   variantesAgotadas: number
+  variantesCriticas: number
   desde: string
   unidadesEntradas: number
   unidadesSurtidas: number
@@ -67,11 +74,21 @@ const qs = (p: Record<string, string | number | undefined>) =>
 /* ---------- Consultas ---------- */
 
 export const listarVariantes = (p: { busqueda?: string; estado?: EstadoFiltro; pagina?: number; elementosPorPagina?: number }) =>
-  api.get<Paginado<ExistenciasVariante>>(`/inventario/variantes?${qs(p)}`)
+  api.get<Paginado<ExistenciasVariante>>(`/inventario/variantes?${qs({ ...p, umbral: p.estado === 'critico' ? UMBRAL_STOCK_CRITICO : undefined })}`)
 
 /** Totales y unidades movidas desde `desde` (por defecto, desde la medianoche local). */
 export const getResumenInventario = (desde: Date) =>
-  api.get<ResumenInventario>(`/inventario/resumen?${qs({ desde: desde.toISOString() })}`)
+  api.get<ResumenInventario>(`/inventario/resumen?${qs({ desde: desde.toISOString(), umbral: UMBRAL_STOCK_CRITICO })}`)
+
+export type ActividadDia = { inicio: string; entradas: number; surtidas: number; vendidas: number }
+
+/** Unidades entradas, surtidas y vendidas por día: los últimos `dias` días locales, el último es hoy. */
+export const getActividad = (dias = 7) => {
+  const desde = new Date()
+  desde.setHours(0, 0, 0, 0)
+  desde.setDate(desde.getDate() - (dias - 1))
+  return api.get<ActividadDia[]>(`/inventario/actividad?${qs({ desde: desde.toISOString(), dias })}`)
+}
 
 export const listarMovimientos = (p: { busqueda?: string; tipo?: TipoMovimiento; pagina?: number; elementosPorPagina?: number }) =>
   api.get<Paginado<Movimiento>>(`/inventario/movimientos?${qs(p)}`)

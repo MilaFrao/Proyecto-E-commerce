@@ -414,6 +414,49 @@ faltaban.
 
 ---
 
+## 016 — Dashboard con datos reales y «stock crítico» provisional
+
+**Fecha:** 2026-10-06 · **Estado:** implementada
+
+El Dashboard dejó de ser maqueta. Lo que muestra, de arriba abajo:
+
+- **Saludo con la persona en sesión y la fecha de hoy.** «Buenos días / Buenas tardes / Buenas noches»
+  según la hora local, el nombre tal como está registrado y la fecha real; se corrige solo si el
+  panel queda abierto pasada la medianoche.
+- **Cuatro métricas:** disponibles para venta, unidades en depósito, variantes en stock crítico y
+  variantes agotadas (`GET /api/inventario/resumen`).
+- **Stock crítico, al centro.** Las 8 variantes con menos unidades, cada una con su saldo por
+  ubicación y una pista de acción: *hay en depósito → surtir* o *sin depósito → reponer*. Un
+  enlace lleva a Inventario ya filtrado.
+- **Pendiente de surtir** es ahora un atajo: muestra cuántas variantes esperan en el depósito, las
+  primeras tres y lleva a la pestaña Surtido.
+- **Unidades movidas, últimos 7 días** (entradas, surtidas, vendidas) con datos reales
+  (`GET /api/inventario/actividad`), y el total de hoy.
+
+**Se quitaron** «Movimientos recientes» (para eso está Historial, con filtros y búsqueda) y el botón
+«Registrar movimiento» (duplicaba el diálogo de Inventario). Lo de registrar movimientos desde
+fuera —lo que se pensó para n8n— ya existe como API: `POST /api/inventario/variantes/{id}/entradas|surtido|ventas|ajustes|mermas`.
+
+**Definición provisional de «crítico».** Una variante es crítica si le quedan **entre 1 y 3 unidades
+sumando depósito y tienda**. Cero unidades es «agotada», que se cuenta aparte; una variante con
+poco en tienda pero mucho en depósito no es crítica, es «por surtir». Así las tres cosas no se
+pisan. El 3 es **global** (`EstadoExistencias.UmbralCriticoPorDefecto` en el back y
+`UMBRAL_STOCK_CRITICO` en el front, el mismo número) y puede pedirse otro con `?umbral=`.
+
+**Concesiones conocidas**
+
+- **El umbral sigue sin decidirse de verdad:** global (hoy) o por producto (la ropa básica rota más
+  que un abrigo). Mientras tanto, la alerta de stock bajo de n8n debe esperar a esta decisión.
+- **La gráfica agrupa los movimientos en memoria** (tres columnas de 7 días). Es trivial a esta
+  escala; si el volumen crece, se pasa a una agregación en SQL.
+- **Los «días» son bloques de 24 h desde la medianoche local de quien consulta.** Correcto en
+  Caracas (sin horario de verano); en una zona con cambio de hora, el día del cambio saldría
+  desfasado una hora.
+- **Nombre completo en el saludo:** se usa el nombre registrado tal cual, sin adivinar cuál es el
+  de pila.
+
+---
+
 ## Pendientes de decisión
 
 | Tema | Bloquea a |
@@ -423,7 +466,7 @@ faltaban.
 | Búsqueda: `ILIKE` simple vs. full-text de PostgreSQL | Rendimiento del catálogo |
 | Editar producto, y con él el estado «Borrador» | Retomar productos incompletos |
 | Limpieza de fotos huérfanas y más de una foto por producto | Crecimiento del almacenamiento |
-| Umbral de "stock bajo": global o por producto | Panel y alertas |
+| Umbral de «stock crítico»: hoy global y provisional (3 unidades); falta decidir si es por producto | Alertas de n8n |
 | Mecanismo de webhooks salientes (reintentos, firma, tabla de eventos) | Casos n8n |
 | Moneda de la tienda (hoy el front asume USD, centralizado en `money.ts`) | Precios en el catálogo |
 | Cambio y recuperación de contraseña (hoy solo el admin crea cuentas) | Autoservicio del personal |

@@ -14,6 +14,7 @@ import DesignSystem from './pages/DesignSystem'
 import Login from './pages/Login'
 import StoreApp from './pages/StoreApp'
 import { useAuth } from './auth/AuthContext'
+import type { EstadoFiltro } from './api/inventario'
 
 const pageMeta: Record<string, { title: string; subtitle: string }> = {
   dashboard:     { title: 'Dashboard',          subtitle: 'Resumen operativo de la tienda' },
@@ -46,6 +47,8 @@ export default function App() {
   const { session, role, ready, logout } = useAuth()
   const [inStore, setInStore] = useState(false)
   const [active, setActive] = useState('dashboard')
+  // Filtro con el que abre Inventario cuando se llega desde el Dashboard (p. ej. «stock crítico»).
+  const [filtroInventario, setFiltroInventario] = useState<EstadoFiltro>('todos')
   const [toast, setToast] = useState<string | null>(null)
 
   useEffect(() => {
@@ -67,6 +70,7 @@ export default function App() {
       setInStore(true)
       return
     }
+    setFiltroInventario('todos')
     setActive(id)
   }
 
@@ -97,7 +101,16 @@ export default function App() {
 
   const renderPage = () => {
     switch (page) {
-      case 'dashboard':   return <Dashboard />
+      case 'dashboard':
+        return (
+          <Dashboard
+            onNavigate={navigate}
+            onVerInventario={(estado) => {
+              setFiltroInventario(estado)
+              setActive('inventory')
+            }}
+          />
+        )
       case 'products':    return <Products onNew={() => setActive('new-product')} />
       case 'new-product':
         return (
@@ -109,7 +122,7 @@ export default function App() {
             }}
           />
         )
-      case 'inventory':   return <Inventory />
+      case 'inventory':   return <Inventory key={filtroInventario} estadoInicial={filtroInventario} />
       case 'surtido':     return <Surtido />
       case 'historial':   return <Historial />
       case 'consulta':    return <Consulta />

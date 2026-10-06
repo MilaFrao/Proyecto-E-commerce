@@ -10,6 +10,7 @@ public record ResumenInventarioDto(
     int VariantesActivas,
     int VariantesSinSurtir,   // hay unidades en deposito pero ninguna en tienda: no se estan vendiendo
     int VariantesAgotadas,    // cero en deposito y cero en tienda
+    int VariantesCriticas,    // quedan entre 1 y el umbral en total (deposito + tienda)
     DateTime Desde,
     int UnidadesEntradas,
     int UnidadesSurtidas,

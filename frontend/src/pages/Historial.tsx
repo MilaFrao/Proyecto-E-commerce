@@ -125,7 +125,7 @@ export default function Historial() {
       ) : (
         <div className={`space-y-6 ${lista.loading && pagina === 1 ? 'opacity-60' : ''}`} aria-busy={lista.loading}>
           {grupos.map((g) => (
-            <section key={g.dia} className="space-y-2" aria-label={g.dia}>
+            <section key={g.items[0].id} className="space-y-2" aria-label={g.dia}>
               <div className="flex items-center gap-3 py-1">
                 <h2 className="text-sm font-semibold text-ink-2 first-letter:uppercase">{g.dia}</h2>
                 <div className="flex-1 h-px bg-border-soft" />

@@ -19,13 +19,22 @@ public static class InventarioEndpoints
 
         // ---- consultas
 
-        // ?busqueda=&estado=todos|disponible|solo-deposito|agotado|por-surtir&pagina=&elementosPorPagina=
-        group.MapGet("/variantes", async (string? busqueda, string? estado, int? pagina, int? elementosPorPagina, IInventarioService service, CancellationToken cancellationToken)
-            => Results.Ok(await service.BuscarVariantesAsync(busqueda, estado, pagina ?? 1, elementosPorPagina ?? 50, cancellationToken)));
+        // ?busqueda=&estado=todos|disponible|solo-deposito|agotado|por-surtir|critico&umbral=&pagina=&elementosPorPagina=
+        group.MapGet("/variantes", async (string? busqueda, string? estado, int? umbral, int? pagina, int? elementosPorPagina, IInventarioService service, CancellationToken cancellationToken)
+            => Results.Ok(await service.BuscarVariantesAsync(busqueda, estado, pagina ?? 1, elementosPorPagina ?? 50, umbral, cancellationToken)));
 
         // ?desde=2026-10-05T04:00:00Z (con zona horaria). Sin "desde": ultimas 24 horas.
-        group.MapGet("/resumen", async (DateTimeOffset? desde, IInventarioService service, CancellationToken cancellationToken)
-            => Results.Ok(await service.ObtenerResumenAsync((desde?.UtcDateTime) ?? DateTime.UtcNow.AddDays(-1), cancellationToken)));
+        // ?umbral= (opcional) es el maximo de unidades en total para contar una variante como "critica".
+        group.MapGet("/resumen", async (DateTimeOffset? desde, int? umbral, IInventarioService service, CancellationToken cancellationToken)
+            => Results.Ok(await service.ObtenerResumenAsync((desde?.UtcDateTime) ?? DateTime.UtcNow.AddDays(-1), umbral, cancellationToken)));
+
+        // ?desde=<medianoche local del primer dia, con zona>&dias=7 : unidades entradas/surtidas/vendidas por dia.
+        group.MapGet("/actividad", async (DateTimeOffset? desde, int? dias, IInventarioService service, CancellationToken cancellationToken) =>
+        {
+            var n = Math.Clamp(dias ?? 7, 1, 31);
+            var inicio = (desde?.UtcDateTime) ?? DateTime.UtcNow.Date.AddDays(1 - n);
+            return Results.Ok(await service.ObtenerActividadAsync(inicio, n, cancellationToken));
+        });
 
         // ?busqueda=&tipo=Entrada|Traslado|Venta|Ajuste|Merma&pagina=&elementosPorPagina=
         group.MapGet("/movimientos", async (string? busqueda, string? tipo, int? pagina, int? elementosPorPagina, IInventarioService service, CancellationToken cancellationToken) =>

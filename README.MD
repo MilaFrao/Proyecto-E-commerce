@@ -223,8 +223,9 @@ Consultar: todo el personal. Mover stock (`POST`): solo inventario y admin.
 
 | Método | Ruta | Qué hace |
 |---|---|---|
-| `GET` | `/api/inventario/variantes` | Variantes con su stock y último movimiento. Filtros: `busqueda`, `estado` (`todos`, `disponible`, `solo-deposito`, `agotado`, `por-surtir`), `pagina`, `elementosPorPagina` |
-| `GET` | `/api/inventario/resumen?desde=` | Totales (depósito, tienda, variantes sin surtir y agotadas) y unidades entradas, surtidas y vendidas desde `desde` (ISO con zona; por defecto, últimas 24 h) |
+| `GET` | `/api/inventario/variantes` | Variantes con su stock y último movimiento. Filtros: `busqueda`, `estado` (`todos`, `disponible`, `solo-deposito`, `agotado`, `por-surtir`, `critico`), `umbral` (solo con `critico`; por defecto 3), `pagina`, `elementosPorPagina` |
+| `GET` | `/api/inventario/resumen?desde=&umbral=` | Totales (depósito, tienda, variantes sin surtir, agotadas y críticas) y unidades entradas, surtidas y vendidas desde `desde` (ISO con zona; por defecto, últimas 24 h) |
+| `GET` | `/api/inventario/actividad?desde=&dias=7` | Unidades entradas, surtidas y vendidas por día: `dias` bloques de 24 h desde `desde` (la medianoche local del primer día) |
 | `GET` | `/api/inventario/movimientos` | Historial de todas las variantes, del más reciente al más viejo, con quién lo hizo. Filtros: `busqueda`, `tipo` (`Entrada`, `Traslado`, `Venta`, `Ajuste`, `Merma`), `pagina` |
 | `GET` | `/api/inventario/variantes/{varianteId}/existencias` | Depósito, tienda y disponible para venta |
 | `GET` | `/api/inventario/variantes/{varianteId}/movimientos` | Historial de una variante |
@@ -262,7 +263,7 @@ reintentar con los números nuevos; el stock nunca queda negativo ni se pisa.
 - Cambio y recuperación de contraseña (hoy solo el administrador crea cuentas)
 - Cambiar el rol de un usuario existente
 - Pruebas automáticas de `AuthService` y de las políticas de autorización
-- Pantalla de vendedores (Consulta comercial; hoy con datos de ejemplo) y el Dashboard
+- Pantalla de vendedores (Consulta comercial; hoy con datos de ejemplo)
 - Devoluciones de clientes (el tipo existe en el modelo; falta decidir si vuelven a tienda o a depósito)
-- Umbral de «stock bajo»
+- Decidir el umbral de «stock crítico» (hoy global y provisional: 3 unidades; falta saber si es por producto)
 - Promociones

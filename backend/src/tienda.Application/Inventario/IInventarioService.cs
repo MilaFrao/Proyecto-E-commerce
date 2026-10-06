@@ -27,10 +27,13 @@ public interface IInventarioService
     Task<Result<ResumenExistenciasDto>> ObtenerExistenciasAsync(Guid varianteId, CancellationToken cancellationToken = default);
 
     /// <summary>Variantes activas con su stock, filtrables por texto y por estado (ver EstadoExistencias). Paginado.</summary>
-    Task<PagedResult<ExistenciasVarianteDto>> BuscarVariantesAsync(string? busqueda, string? estado, int pagina, int elementosPorPagina, CancellationToken cancellationToken = default);
+    Task<PagedResult<ExistenciasVarianteDto>> BuscarVariantesAsync(string? busqueda, string? estado, int pagina, int elementosPorPagina, int? umbralCritico = null, CancellationToken cancellationToken = default);
 
     /// <summary>Totales del inventario y unidades movidas desde una fecha (UTC).</summary>
-    Task<ResumenInventarioDto> ObtenerResumenAsync(DateTime desde, CancellationToken cancellationToken = default);
+    Task<ResumenInventarioDto> ObtenerResumenAsync(DateTime desde, int? umbralCritico = null, CancellationToken cancellationToken = default);
+
+    /// <summary>Unidades entradas, surtidas y vendidas por dia: <paramref name="dias"/> bloques de 24 h desde <paramref name="desde"/> (UTC).</summary>
+    Task<IReadOnlyList<ActividadDiaDto>> ObtenerActividadAsync(DateTime desde, int dias, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<MovimientoExistenciasDto>> ObtenerHistorialMovimientosAsync(Guid varianteId, CancellationToken cancellationToken = default);
 

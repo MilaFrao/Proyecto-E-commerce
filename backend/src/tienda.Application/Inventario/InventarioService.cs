@@ -173,8 +173,9 @@ public class InventarioService : IInventarioService
             : Result.Success(ResumirExistencias(variante));
     }
 
-    public async Task<PagedResult<ExistenciasVarianteDto>> BuscarVariantesAsync(string? busqueda, string? estado, int pagina, int elementosPorPagina, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ExistenciasVarianteDto>> BuscarVariantesAsync(string? busqueda, string? estado, int pagina, int elementosPorPagina, int? umbralCritico = null, CancellationToken cancellationToken = default)
     {
+        var umbral = UmbralCritico(umbralCritico);
         pagina = Math.Max(pagina, 1);
         elementosPorPagina = Math.Clamp(elementosPorPagina, 1, 100);
 
@@ -208,15 +209,20 @@ public class InventarioService : IInventarioService
             EstadoExistencias.SoloDeposito => conSaldos.Where(x => x.Tienda == 0 && x.Deposito > 0),
             EstadoExistencias.Agotado => conSaldos.Where(x => x.Tienda == 0 && x.Deposito == 0),
             EstadoExistencias.PorSurtir => conSaldos.Where(x => x.Deposito > 0),
+            EstadoExistencias.Critico => conSaldos.Where(x => x.Deposito + x.Tienda > 0 && x.Deposito + x.Tienda <= umbral),
             _ => conSaldos
         };
 
         var cantidadTotal = await conSaldos.CountAsync(cancellationToken);
 
         // En "por surtir" van primero las que no tienen nada en tienda: son las que no se estan vendiendo.
-        var ordenadas = filtro == EstadoExistencias.PorSurtir
-            ? conSaldos.OrderBy(x => x.Tienda > 0).ThenBy(x => x.Variante.Producto!.Nombre)
-            : conSaldos.OrderBy(x => x.Variante.Producto!.Nombre);
+        // En "critico" van primero las que tienen menos unidades en total.
+        var ordenadas = filtro switch
+        {
+            EstadoExistencias.PorSurtir => conSaldos.OrderBy(x => x.Tienda > 0).ThenBy(x => x.Variante.Producto!.Nombre),
+            EstadoExistencias.Critico => conSaldos.OrderBy(x => x.Deposito + x.Tienda).ThenBy(x => x.Variante.Producto!.Nombre),
+            _ => conSaldos.OrderBy(x => x.Variante.Producto!.Nombre)
+        };
 
         var elementos = await ordenadas
             .ThenBy(x => x.Variante.Color).ThenBy(x => x.Variante.Talla)
@@ -245,8 +251,9 @@ public class InventarioService : IInventarioService
         };
     }
 
-    public async Task<ResumenInventarioDto> ObtenerResumenAsync(DateTime desde, CancellationToken cancellationToken = default)
+    public async Task<ResumenInventarioDto> ObtenerResumenAsync(DateTime desde, int? umbralCritico = null, CancellationToken cancellationToken = default)
     {
+        var umbral = UmbralCritico(umbralCritico);
         var niveles = _db.NivelesExistencias.AsNoTracking()
             .Where(n => n.Variante!.EstaActiva && n.Variante.Producto!.Estado == EstadoProducto.Activo);
 
@@ -264,14 +271,47 @@ public class InventarioService : IInventarioService
         var activas = await variantes.CountAsync(cancellationToken);
         var sinSurtir = await variantes.CountAsync(x => x.Deposito > 0 && x.Tienda == 0, cancellationToken);
         var agotadas = await variantes.CountAsync(x => x.Deposito == 0 && x.Tienda == 0, cancellationToken);
+        var criticas = await variantes.CountAsync(x => x.Deposito + x.Tienda > 0 && x.Deposito + x.Tienda <= umbral, cancellationToken);
 
         var movimientos = _db.MovimientosExistencias.AsNoTracking().Where(m => m.OcurridoEn >= desde);
         var entradas = await movimientos.Where(m => m.Tipo == TipoMovimiento.Entrada).SumAsync(m => m.Cantidad, cancellationToken);
         var surtidas = await movimientos.Where(m => m.Tipo == TipoMovimiento.Traslado).SumAsync(m => m.Cantidad, cancellationToken);
         var vendidas = await movimientos.Where(m => m.Tipo == TipoMovimiento.Venta).SumAsync(m => -m.Cantidad, cancellationToken);
 
-        return new ResumenInventarioDto(unidadesDeposito, unidadesTienda, activas, sinSurtir, agotadas, desde, entradas, surtidas, vendidas);
+        return new ResumenInventarioDto(unidadesDeposito, unidadesTienda, activas, sinSurtir, agotadas, criticas, desde, entradas, surtidas, vendidas);
     }
+
+    public async Task<IReadOnlyList<ActividadDiaDto>> ObtenerActividadAsync(DateTime desde, int dias, CancellationToken cancellationToken = default)
+    {
+        dias = Math.Clamp(dias, 1, 31);
+        desde = DateTime.SpecifyKind(desde, DateTimeKind.Utc);
+        var hasta = desde.AddDays(dias);
+
+        // Solo tres columnas de unos pocos dias de movimientos: se agrupan en memoria (los bloques de 24 h
+        // empiezan donde diga quien consulta, asi "dia" es el dia local de la tienda y no el de Greenwich).
+        var filas = await _db.MovimientosExistencias.AsNoTracking()
+            .Where(m => m.OcurridoEn >= desde && m.OcurridoEn < hasta
+                && (m.Tipo == TipoMovimiento.Entrada || m.Tipo == TipoMovimiento.Traslado || m.Tipo == TipoMovimiento.Venta))
+            .Select(m => new { m.Tipo, m.Cantidad, m.OcurridoEn })
+            .ToListAsync(cancellationToken);
+
+        var resultado = new List<ActividadDiaDto>(dias);
+        for (var i = 0; i < dias; i++)
+        {
+            var inicio = desde.AddDays(i);
+            var fin = inicio.AddDays(1);
+            var delDia = filas.Where(f => f.OcurridoEn >= inicio && f.OcurridoEn < fin).ToList();
+            resultado.Add(new ActividadDiaDto(
+                inicio,
+                delDia.Where(f => f.Tipo == TipoMovimiento.Entrada).Sum(f => f.Cantidad),
+                delDia.Where(f => f.Tipo == TipoMovimiento.Traslado).Sum(f => f.Cantidad),
+                delDia.Where(f => f.Tipo == TipoMovimiento.Venta).Sum(f => -f.Cantidad)));
+        }
+        return resultado;
+    }
+
+    private static int UmbralCritico(int? pedido)
+        => pedido is > 0 and <= 1000 ? pedido.Value : EstadoExistencias.UmbralCriticoPorDefecto;
 
     public async Task<IReadOnlyList<MovimientoExistenciasDto>> ObtenerHistorialMovimientosAsync(Guid varianteId, CancellationToken cancellationToken = default)
         => await ProyectarMovimientos(ConsultaMovimientos().Where(x => x.Movimiento.VarianteProductoId == varianteId))

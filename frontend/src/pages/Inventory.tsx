@@ -13,6 +13,7 @@ import {
   getResumenInventario,
   listarVariantes,
   type EstadoFiltro,
+  UMBRAL_STOCK_CRITICO,
   type ExistenciasVariante,
 } from '../api/inventario'
 import { useDebounced } from '../lib/useDebounced'
@@ -25,11 +26,12 @@ const ESTADOS: { id: EstadoFiltro; label: string }[] = [
   { id: 'disponible', label: 'Disponible en tienda' },
   { id: 'solo-deposito', label: 'Solo en depósito' },
   { id: 'agotado', label: 'Agotado' },
+  { id: 'critico', label: `Stock crítico (${UMBRAL_STOCK_CRITICO} ud o menos)` },
 ]
 
-export default function Inventory() {
+export default function Inventory({ estadoInicial = 'todos' }: { estadoInicial?: EstadoFiltro }) {
   const [search, setSearch] = useState('')
-  const [estado, setEstado] = useState<EstadoFiltro>('todos')
+  const [estado, setEstado] = useState<EstadoFiltro>(estadoInicial)
   const [pagina, setPagina] = useState(1)
   const [moviendo, setMoviendo] = useState<ExistenciasVariante | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)

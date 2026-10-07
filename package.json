@@ -1,0 +1,18 @@
+{
+  "name": "tienda",
+  "private": true,
+  "description": "Monorepo de la tienda: backend .NET en backend/, frontends y paquetes compartidos en apps/ y packages/ (decisión 017).",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @tienda/admin",
+    "dev:admin": "npm run dev -w @tienda/admin",
+    "build": "npm run build --workspaces --if-present",
+    "dev:tienda": "npm run dev -w @tienda/tienda",
+    "build:admin": "npm run build -w @tienda/admin",
+    "build:tienda": "npm run build -w @tienda/tienda",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}

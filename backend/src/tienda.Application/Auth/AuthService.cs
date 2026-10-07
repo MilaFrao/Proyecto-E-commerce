@@ -3,6 +3,7 @@ using Tienda.Application.Abstractions;
 using Tienda.Application.Auth.Dtos;
 using Tienda.Application.Common;
 using Tienda.Application.Usuarios.Dtos;
+using Tienda.Domain.Identity;
 
 namespace Tienda.Application.Auth;
 
@@ -37,7 +38,9 @@ public class AuthService : IAuthService
         // Se verifica SIEMPRE una huella, aunque el usuario no exista, para que el tiempo de respuesta no delate nada.
         var claveCorrecta = _hasher.Verify(usuario?.HuellaContrasena ?? _hasher.HashFalso, clave);
 
-        if (usuario is null || !claveCorrecta || !usuario.EstaActivo)
+        // Las cuentas de cliente tienen su propia entrada (/api/clientes/auth/login): aqui no se emite token para ellas.
+        if (usuario is null || !claveCorrecta || !usuario.EstaActivo
+            || !usuario.Roles.Any(r => Rol.DePersonal.Contains(r.Rol!.Nombre)))
             return Result.Failure<LoginResponse>(MensajeCredenciales);
 
         usuario.UltimoAccesoEn = _clock.UtcNow;

@@ -54,7 +54,8 @@ public static class AuthExtensions
         services.AddAuthorizationBuilder()
             .AddPolicy(Politicas.Admin, policy => policy.RequireRole(Rol.Administrador))
             .AddPolicy(Politicas.Inventario, policy => policy.RequireRole(Rol.Administrador, Rol.Inventario))
-            .AddPolicy(Politicas.Personal, policy => policy.RequireRole(Rol.Administrador, Rol.Inventario, Rol.Vendedor));
+            .AddPolicy(Politicas.Personal, policy => policy.RequireRole(Rol.Administrador, Rol.Inventario, Rol.Vendedor))
+            .AddPolicy(Politicas.Cliente, policy => policy.RequireRole(Rol.Cliente));
 
         return services;
     }

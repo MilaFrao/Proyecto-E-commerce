@@ -14,4 +14,7 @@ public static class Politicas
 
     /// <summary>Todo el personal (admin, inventario y vendedor): consulta.</summary>
     public const string Personal = "Personal";
+
+    /// <summary>Solo cuentas de cliente (decision 018). Nunca abre el panel.</summary>
+    public const string Cliente = "Cliente";
 }

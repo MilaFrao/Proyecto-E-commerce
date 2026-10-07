@@ -14,5 +14,8 @@ public class Usuario : BaseEntity
     public bool EstaActivo { get; set; } = true;
     public DateTime? UltimoAccesoEn { get; set; }
 
+    /// <summary>Nulo hasta verificar el correo. Hoy no se exige: ver decision 018 (verificacion por etapas).</summary>
+    public DateTime? CorreoVerificadoEn { get; set; }
+
     public ICollection<UsuarioRol> Roles { get; set; } = new List<UsuarioRol>();
 }

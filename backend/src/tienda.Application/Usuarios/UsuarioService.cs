@@ -24,6 +24,8 @@ public class UsuarioService : IUsuarioService
         var usuarios = await _db.Usuarios
             .AsNoTracking()
             .Include(u => u.Roles).ThenInclude(r => r.Rol)
+            // Los clientes no son personal: no aparecen en la gestion de accesos del panel.
+            .Where(u => u.Roles.Any(r => Rol.DePersonal.Contains(r.Rol!.Nombre)))
             .OrderBy(u => u.NombreCompleto)
             .ToListAsync(cancellationToken);
 
@@ -40,10 +42,10 @@ public class UsuarioService : IUsuarioService
         if (nombre.Length < 2 || nombre.Length > 100)
             return Result.Failure<UsuarioDto>("El nombre debe tener entre 2 y 100 caracteres.");
 
-        if (correo.Length > 200 || !CorreoValido(correo))
+        if (correo.Length > 200 || !ReglasCuenta.CorreoValido(correo))
             return Result.Failure<UsuarioDto>("El correo no es valido.");
 
-        var errorClave = ValidarClave(clave);
+        var errorClave = ReglasCuenta.ValidarClave(clave);
         if (errorClave is not null)
             return Result.Failure<UsuarioDto>(errorClave);
 
@@ -96,24 +98,5 @@ public class UsuarioService : IUsuarioService
         usuario.UpdatedAt = _clock.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
         return Result.Success();
-    }
-
-    private static bool CorreoValido(string correo)
-    {
-        var arroba = correo.IndexOf('@');
-        return arroba > 0
-            && arroba == correo.LastIndexOf('@')
-            && correo.IndexOf('.', arroba) > arroba + 1
-            && !correo.EndsWith('.')
-            && !correo.Contains(' ');
-    }
-
-    /// <summary>Regla minima: 8 a 100 caracteres, con al menos una letra y un numero.</summary>
-    private static string? ValidarClave(string clave)
-    {
-        if (clave.Length < 8) return "La clave debe tener al menos 8 caracteres.";
-        if (clave.Length > 100) return "La clave no puede pasar de 100 caracteres.";
-        if (!clave.Any(char.IsLetter) || !clave.Any(char.IsDigit)) return "La clave debe incluir letras y numeros.";
-        return null;
     }
 }

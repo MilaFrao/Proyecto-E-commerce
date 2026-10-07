@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Tienda.Application.Auth;
 using Tienda.Application.Catalogo;
+using Tienda.Application.Clientes;
 using Tienda.Application.Inventario;
 using Tienda.Application.Listas;
 using Tienda.Application.Productos;
@@ -18,6 +19,7 @@ public static class DependencyInjection
         services.AddScoped<IListasService, ListasService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUsuarioService, UsuarioService>();
+        services.AddScoped<IClienteService, ClienteService>();
         return services;
     }
 }

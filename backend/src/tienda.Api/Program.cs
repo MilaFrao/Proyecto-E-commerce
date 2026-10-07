@@ -53,7 +53,7 @@ builder.Services.AddSwaggerGen(options =>
 const string FrontendCorsPolicy = "frontend";
 builder.Services.AddCors(options =>
     options.AddPolicy(FrontendCorsPolicy, policy => policy
-        .WithOrigins("http://localhost:5173")
+        .WithOrigins("http://localhost:5173", "http://localhost:5174")
         .AllowAnyHeader()
         .AllowAnyMethod()));
 
@@ -110,6 +110,7 @@ app.MapGet("/salud", () => Results.Ok(new { estado = "correcto", fechaHora = Dat
    .AllowAnonymous();
 
 app.MapAuthEndpoints();
+app.MapClientesEndpoints();
 
 // MVP 1 - interno (protegido por rol)
 app.MapProductoEndpoints();

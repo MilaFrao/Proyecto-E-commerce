@@ -20,6 +20,7 @@ public interface IAppDbContext
     DbSet<MovimientoExistencias> MovimientosExistencias { get; }
     DbSet<Usuario> Usuarios { get; }
     DbSet<Rol> Roles { get; }
+    DbSet<Cliente> Clientes { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

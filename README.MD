@@ -36,13 +36,15 @@ tienda-app/
 │   │   └── Tienda.Api/              endpoints HTTP
 │   └── tests/
 │       └── Tienda.Domain.Tests/
-├── frontend/
-│   └── src/
-│       ├── app/                     router, layouts, providers
-│       ├── features/                catalog · products · inventory · auth
-│       ├── shared/                  cliente HTTP, tipos y componentes comunes
-│       └── styles/
-└── docs/
+├── apps/
+│   ├── admin/                       panel del equipo (decisión 017)
+│   │   └── src/                     api · auth · components · data · lib · pages · styles
+│   └── tienda/                      catálogo público para clientes (decisión 017)
+│       └── src/                     components · context · lib · pages
+├── packages/
+│   └── shared/                      @tienda/shared: cliente de API, contrato del catálogo, money.ts
+├── docs/
+└── package.json                     workspaces de npm (apps/* y packages/*)
 ```
 
 ### La regla de las dependencias
@@ -150,12 +152,21 @@ Si `Jwt__Key` falta o es corta, la API no arranca. Es a propósito.
 ### 3. Frontend
 
 ```bash
-cd frontend
+# En la raíz del repositorio (no dentro de apps/)
 npm install
-npm run dev
+npm run dev:admin     # panel del equipo      → http://localhost:5173
+npm run dev:tienda    # catálogo para clientes → http://localhost:5174
 ```
 
-Queda en `http://localhost:5173`. Vite redirige `/api` (y `/media`, las fotos) al
+El frontend usa **workspaces de npm** (decisión 017): un solo `npm install` en la raíz instala
+el panel (`apps/admin`), la tienda (`apps/tienda`) y el paquete compartido (`packages/shared`, importado como
+`@tienda/shared`). Si venías de la estructura anterior, borra `apps/admin/node_modules` antes de
+la primera instalación.
+
+Otros scripts desde la raíz: `npm run build:admin`, `npm run build:tienda` y `npm run typecheck`.
+El panel enlaza a la tienda con la variable `VITE_TIENDA_URL` (por defecto `http://localhost:5174`).
+
+Cada app tiene su puerto. Vite redirige `/api` (y `/media`, las fotos) al
 backend en `http://localhost:5080`, así que no hay que pelear con CORS en desarrollo.
 
 Entra con el administrador de la sección anterior.

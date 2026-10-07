@@ -246,6 +246,23 @@ namespace Tienda.Infrastructure.Migrations
                     b.ToTable("variantes_producto", (string)null);
                 });
 
+            modelBuilder.Entity("Tienda.Domain.Identity.Cliente", b =>
+                {
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AceptoTerminosEn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.HasKey("UsuarioId");
+
+                    b.ToTable("clientes", (string)null);
+                });
+
             modelBuilder.Entity("Tienda.Domain.Identity.Rol", b =>
                 {
                     b.Property<Guid>("Id")
@@ -284,6 +301,9 @@ namespace Tienda.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("CorreoVerificadoEn")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
@@ -472,6 +492,17 @@ namespace Tienda.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Producto");
+                });
+
+            modelBuilder.Entity("Tienda.Domain.Identity.Cliente", b =>
+                {
+                    b.HasOne("Tienda.Domain.Identity.Usuario", "Usuario")
+                        .WithOne()
+                        .HasForeignKey("Tienda.Domain.Identity.Cliente", "UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Usuario");
                 });
 
             modelBuilder.Entity("Tienda.Domain.Identity.UsuarioRol", b =>

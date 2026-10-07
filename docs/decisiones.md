@@ -3,6 +3,9 @@
 Registro de las decisiones tomadas y del porqué. Cuando una decisión cambie, se
 agrega una entrada nueva en vez de editar la vieja: el historial importa.
 
+> **Fuente de verdad:** Notion (página «Documentación del proyecto»). Este archivo es
+> una copia para el repositorio y para quien colabore; si difieren, manda Notion.
+
 **Stack:** React + TypeScript + Vite · ASP.NET Core 8 (Minimal APIs) · EF Core 8 · PostgreSQL · Docker · Git + GitHub
 
 ---
@@ -61,7 +64,7 @@ controllers, así que a veces habrá que traducir mentalmente.
 
 ## 004 — Una sola SPA con dos layouts
 
-**Fecha:** 2026-09-28 · **Estado:** aceptada
+**Fecha:** 2026-09-28 · **Estado:** reemplazada por la 017 (al haber login de clientes y posible app móvil, el frontend se parte en dos apps)
 
 Un solo proyecto de frontend con dos árboles de rutas:
 
@@ -457,6 +460,162 @@ pisan. El 3 es **global** (`EstadoExistencias.UmbralCriticoPorDefecto` en el bac
 
 ---
 
+## 017 — Dos aplicaciones de frontend y un paquete compartido
+
+**Fecha:** 2026-10-07 · **Estado:** aceptada · pasos 1, 2 y 3 aplicados, 4 pendiente · **Reemplaza a la 004**
+
+**Avance.** El panel ya vive en `apps/admin` y `packages/shared` (`@tienda/shared`) contiene el cliente de API,
+el contrato del catálogo público, los tipos de la vista pública y `money.ts`. `apps/tienda` ya sirve el catálogo a clientes (paso 3). Queda el paso 4 (login de clientes, entrada 018).
+
+**Cómo quedó el paso 3**
+
+- **`apps/tienda`** (puerto 5174, proxy de `/api` y `/media` igual que el panel): Inicio, Catálogo, Categorías y
+  detalle de prenda, con rutas reales (`react-router-dom`). Categoría y búsqueda viven en la URL
+  (`/catalogo?categoria=…&q=…`), así que se pueden compartir. El catálogo se pide una sola vez y se reparte por
+  contexto. Diseño tomado del Figma (header, hero, tarjetas, filtros) pero con datos reales de la API.
+- **Moneda.** Sin cambios: `CURRENCY` en `@tienda/shared` (`$`, `es-VE`). El Figma decía «COP», que no aplica; si
+  la tienda cobra en bolívares o en dólares sigue siendo una decisión de negocio pendiente, y se cambia en un solo
+  sitio.
+- **Búsqueda.** Filtro en el cliente sobre el catálogo ya cargado (nombre, marca, referencia, categoría, color).
+  Alcanza con cientos de prendas; cuando el catálogo crezca se pasa a `ILIKE` en el backend y la tienda no cambia
+  de aspecto.
+- **Categorías.** Salen de los datos, no de una lista fija: una categoría nueva aparece sola con un color asignado.
+  «Novedades», género y jerarquía siguen esperando la decisión de jerarquía de categorías.
+- **Fuera de alcance a propósito.** Carrito, favoritos, «Vestir Club», registro y cuenta: dependen de la 018. El
+  detalle dice «Disponible en tienda» en vez de «Agregar a la bolsa».
+- **Panel.** Se borró el catálogo público que vivía dentro de `apps/admin` (`StoreApp` y sus páginas) y los datos
+  de ejemplo que lo alimentaban. «Tienda pública» y «Ver el catálogo público» abren `apps/tienda` en otra pestaña
+  (`VITE_TIENDA_URL`). CORS del backend admite también `http://localhost:5174`.
+
+**Cómo quedó el paso 2**
+
+- **Workspaces de npm.** `package.json` en la raíz con `apps/*` y `packages/*`, un solo `package-lock.json` y un
+  solo `npm install` en la raíz. `shared` se consume como código fuente TypeScript, sin build propio: las apps
+  importan siempre `@tienda/shared`, nunca rutas internas.
+- **Qué entró.** Solo lo que usarán las dos apps: `client.ts` (la sesión se conecta desde afuera con
+  `configureAuth`, así que no sabe nada de login), `catalogo.ts`, `PublicProduct`/`PublicVariant` con
+  `buildFacets` y `money.ts`.
+- **Qué se quedó en el panel.** Auth, inventario, productos, usuarios, `useAsync` y las reglas internas de
+  `lib/stock.ts` (precio efectivo y publicación). `useAsync` se muda cuando la tienda lo necesite de verdad,
+  no antes.
+
+El sistema nació como herramienta interna: parte operativa + catálogo, usada por el
+equipo de la tienda. El objetivo ahora es abrirlo a clientes externos sin partir el
+sistema: una sola API, una sola base de datos y un solo inventario, con la operación y
+el comercio en el mismo núcleo. Cada público entra por su puerta.
+
+```
+apps/admin       → panel del equipo (hoy en frontend/)
+apps/tienda      → catálogo y, más adelante, cuenta del cliente
+packages/shared  → cliente de API, tipos, money.ts
+```
+
+**Por qué se reemplaza la 004.** La 004 asumía un cliente anónimo y un panel interno,
+y con eso una sola SPA con dos layouts alcanzaba. Ya no: habrá login de clientes y,
+probablemente, una app móvil de catálogo. El lado del cliente pasa a ser superficie
+pública real (registro, recuperación de clave, claves filtradas), con un perfil de
+riesgo distinto al del panel. Mezclarlos en una sola app hace que un cambio en uno
+pueda romper o exponer al otro.
+
+**Por qué ahora.** Todavía no existen vistas de cliente, así que no hay nada que
+desenredar. Con código encima, mover esto costaría una semana en vez de una tarde.
+
+**Qué no cambia**
+
+- El backend (decisiones 002, 003, 005 a 007) queda intacto.
+- La 001 (monorepo) sigue vigente; esta decisión la aprovecha.
+- El catálogo sigue siendo anónimo primero. El login del cliente se agrega encima, no
+  antes de publicarlo.
+
+**Plan de migración, en orden**
+
+1. Mover `frontend/` a `apps/admin` sin cambiar su comportamiento. Criterio de éxito:
+   compila y funciona igual.
+2. Extraer `packages/shared` con lo que ambas apps usarán: cliente de API, tipos y
+   `money.ts`.
+3. Crear `apps/tienda` y construir el catálogo, resolviendo antes moneda y búsqueda.
+4. Login de clientes, con su propia entrada (018).
+
+**Consecuencias**
+
+- Dos builds y dos despliegues en lugar de uno. A cambio, el panel queda aislado de lo
+  que ve el público, y el bundle público deja de cargar código de administración.
+- Hay que cuidar que `shared` no se convierta en un cajón de sastre: solo entra lo que
+  de verdad usan las dos apps.
+- Si la app móvil llega a ser nativa, reutiliza la API y lo que se pueda de `shared`;
+  si es PWA, `apps/tienda` ya cumple ese papel. Esa decisión sigue abierta y no bloquea
+  nada de lo anterior.
+
+**Concesiones conocidas**
+
+- Es más ceremonia hoy para un beneficio que se cobra después. Se acepta porque el
+  proyecto es también el banco de pruebas para una propuesta real (decisión 013).
+- Las concesiones de seguridad de la 012 (token en `localStorage`, sin refresh token)
+  dejan de ser aceptables para el lado del cliente. Se resuelven en la 018, no antes de
+  abrir el registro.
+
+---
+
+## 018 — Cuenta del cliente: `Cliente` hija de `Usuario`, sesión propia y verificación por etapas
+
+**Fecha:** 2026-10-07 · **Estado:** aceptada · versión simple implementada (falta migración y prueba)
+
+Desarrolla el paso 4 de la 017. Los clientes entran por su propia puerta, con su propio token, y nunca tocan el panel.
+
+**Modelo de datos**
+
+- **`Cliente` es hija de `Usuario`, relación 1 a 1** con clave compartida (`Cliente.UsuarioId` es PK y FK). La identidad (correo, clave, activo, rol `cliente`) queda en `Usuario`; el perfil, en `Cliente`.
+- **Datos mínimos:** nombre, correo y clave; teléfono opcional y fecha de aceptación de términos. Direcciones, favoritos y pedidos serán tablas aparte cuando lleguen, para que `Cliente` no se infle.
+- **`Usuario.CorreoVerificadoEn`** (nulo hasta verificar). La columna existe desde el inicio aunque la verificación todavía no se exija.
+- **Correo único en toda la tabla:** un empleado no puede registrarse como cliente con el mismo correo. Se acepta por simplicidad.
+
+**Sesión: la misma del panel**
+
+- **Mismo JWT y mismo mecanismo que el panel** (decisión 012): el token lleva el rol `cliente`, dura lo mismo y la tienda lo guarda en `localStorage` bajo su propia clave. Sin refresh token ni cookie por ahora.
+- **Separación por rol, no por audiencia.** Las políticas del panel exigen un rol de personal, así que un token de cliente no abre nada interno; el login del panel (`/api/auth/login`) ya no emite token a cuentas que no sean de personal, y la lista de usuarios del panel no muestra clientes. Una audiencia distinta en el token queda para cuando se endurezca la sesión.
+- **Endpoints:** `POST /api/clientes/registro` (crea `Usuario` con rol `cliente` más su `Cliente` en una transacción y deja la sesión iniciada), `POST /api/clientes/auth/login` y `GET /api/clientes/yo`. Registro y login comparten el limitador por IP de la 012.
+- **Registro abierto**; `Clientes:RegistroAbierto = false` lo cierra.
+- **Pantallas en `apps/tienda`:** `/ingresar`, `/registro` y `/cuenta`, con el mismo estilo del login del panel.
+
+**Verificación del correo: por etapas**
+
+1. **Ahora:** se registra y se entra **sin verificar**, con correos simples y cuentas de prueba. No hay envío de correos ni `IEmailSender`.
+2. **Cuando haya acciones sensibles** (favoritos, carrito, compras, pedidos) la verificación pasa a ser obligatoria para ellas, no para entrar. La columna `CorreoVerificadoEn` ya existe para ese día.
+3. **Después de investigarlo:** proveedor de correo, verificación, recuperación de clave y endurecer la sesión (refresh con rotación, cookie `httpOnly`, audiencia propia). **Hasta entonces el registro no se expone a internet.**
+
+**Pendiente de la etapa simple:** generar la migración (`Clientes`) y probarla contra la base.
+
+**Concesiones conocidas**
+
+- Sin verificación, cualquiera puede registrar un correo ajeno. Es tolerable mientras la cuenta no dé acceso a nada sensible.
+- El registro avisa si el correo ya existe, lo que revela quién tiene cuenta. Se cierra junto con la verificación por correo.
+- El token del cliente vive en `localStorage`, igual que el del panel (deuda de la 012). Un XSS lo robaría; por eso nada sensible cuelga de la cuenta todavía.
+
+---
+
+## 019 — Error al listar usuarios: `array.Contains` dentro de una consulta de EF Core
+
+**Fecha:** 2026-10-07 · **Estado:** corregida (pendiente de confirmar en ejecución) · **Origen:** reporte desde el panel (Usuarios, con superusuario)
+
+**Síntoma.** En el panel, Usuarios mostraba «No pudimos cargar los usuarios» y la API respondía 500. El log decía `GenericArguments[1], 'System.ReadOnlySpan<String>' … violates the constraint` dentro de `ParameterExtractingExpressionVisitor`, en `UsuarioService.ListarAsync`. El resto del panel funcionaba.
+
+**Causa.** Un cambio de la 018 filtró la lista de personal con `Rol.DePersonal.Contains(...)` dentro de la consulta, y `DePersonal` era un `string[]`. El proyecto compila con `LangVersion=latest`; con C# 14 (SDK de .NET 10) `arreglo.Contains(x)` deja de resolverse a `Enumerable.Contains` y pasa a `MemoryExtensions.Contains(ReadOnlySpan<T>, T)`. EF Core 8 intenta evaluar esa expresión para convertirla en parámetro SQL, no puede construirla con un `ReadOnlySpan` y lanza la excepción **antes** de generar SQL. Por eso ninguna otra consulta fallaba: las demás usan `List<string>` (`ids`, `listaCodigosSku`), que no tiene ese problema. Que los dos frontends estén corriendo a la vez no tiene relación con el error.
+
+**Corrección.**
+
+- `Rol.DePersonal` pasa de `string[]` a `IReadOnlyList<string>`. Esa interfaz no tiene sobrecarga con spans, así que `Contains` vuelve a ser `Enumerable.Contains` y EF lo traduce a `IN (...)`. Se corrige en el origen: cualquier consulta futura que use `DePersonal` queda protegida.
+- Con la nota en el código explicando el porqué, para que nadie lo «simplifique» de vuelta a un arreglo.
+
+**Por qué no se vio antes.** El cambio se escribió sin compilar ni ejecutar contra la base (el entorno de desarrollo del asistente no tiene .NET), y no hay pruebas de integración de `UsuarioService`. Lo detectó el uso real.
+
+**Para evitar que se repita**
+
+- Regla: dentro de una consulta de EF, la colección que va en `Contains` es una `List<T>` o un `IReadOnlyList<T>`, nunca un arreglo.
+- Pendiente de decidir: fijar `LangVersion` en `12` (la versión de C# de .NET 8) en `Directory.Build.props` en vez de `latest`, para que actualizar el SDK no cambie el comportamiento del compilador sin avisar. No se aplicó todavía.
+- Pendiente: una prueba de integración de la lista de usuarios (con base en memoria o Testcontainers) que habría atrapado este error.
+
+---
+
 ## Pendientes de decisión
 
 | Tema | Bloquea a |
@@ -470,5 +629,8 @@ pisan. El 3 es **global** (`EstadoExistencias.UmbralCriticoPorDefecto` en el bac
 | Mecanismo de webhooks salientes (reintentos, firma, tabla de eventos) | Casos n8n |
 | Moneda de la tienda (hoy el front asume USD, centralizado en `money.ts`) | Precios en el catálogo |
 | Cambio y recuperación de contraseña (hoy solo el admin crea cuentas) | Autoservicio del personal |
-| Token en `localStorage` vs. cookie `httpOnly`, y refresh tokens | Exponer el panel a internet |
+| Token en `localStorage` vs. cookie `httpOnly`, y refresh tokens | Abrir el registro de clientes |
 | Devoluciones: ¿vuelven a tienda o a depósito? | Registrar devoluciones |
+| **018 — Cliente como tabla hija de `Usuario`** (1 a 1): identidad en `Usuario`, perfil en `Cliente`. Incluye audiencia distinta en el token para que uno de cliente nunca abra el panel, y filtrar la lista de personal | Login de clientes |
+| Seguridad de sesión del cliente: refresh tokens, cookie `httpOnly` o almacenamiento seguro en móvil, verificación de correo y recuperación de clave | Abrir el registro de clientes |
+| App móvil: PWA o nativa (React Native, Flutter) | Alcance de `packages/shared` |
